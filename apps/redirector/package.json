@@ -1,0 +1,34 @@
+{
+  "name": "@linkpulse/redirector",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@linkpulse/db": "workspace:*",
+    "@nestjs/common": "latest",
+    "@nestjs/config": "latest",
+    "@nestjs/core": "latest",
+    "@nestjs/platform-fastify": "latest",
+    "@types/ua-parser-js": "^0.7.39",
+    "@upstash/redis": "latest",
+    "fastify": "^5.8.2",
+    "reflect-metadata": "latest",
+    "rxjs": "latest",
+    "ua-parser-js": "^2.0.9"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "latest",
+    "@nestjs/schematics": "latest",
+    "@nestjs/testing": "latest",
+    "@types/node": "latest",
+    "eslint": "latest",
+    "ts-node": "latest",
+    "typescript": "latest"
+  }
+}

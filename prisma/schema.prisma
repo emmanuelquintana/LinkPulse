@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspacePlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum LinkStatus {
+  ACTIVE
+  ARCHIVED
+  BLOCKED
+  EXPIRED
+}
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+  BOT
+  UNKNOWN
+}
+
+model Profile {
+  id          String            @id @db.Uuid
+  email       String            @unique
+  firstName   String?           @map("first_name")
+  lastName    String?           @map("last_name")
+  avatarUrl   String?           @map("avatar_url")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  workspaces  Workspace[]       @relation("WorkspaceOwner")
+  memberships WorkspaceMember[]
+  links       Link[]            @relation("LinkCreator")
+
+  @@map("profiles")
+}
+
+model Workspace {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String
+  ownerUserId String            @db.Uuid
+  plan                 WorkspacePlan     @default(FREE)
+  stripeCustomerId     String?           @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?           @unique @map("stripe_subscription_id")
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  owner                Profile           @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  members              WorkspaceMember[]
+  links                Link[]
+  campaigns            Campaign[]
+  subscription         Subscription?
+  invoices             Invoice[]
+
+  @@index([ownerUserId])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String         @id @default(uuid()) @db.Uuid
+  workspaceId String         @db.Uuid
+  userId      String         @db.Uuid
+  role        WorkspaceRole  @default(MEMBER)
+  createdAt   DateTime       @default(now())
+  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        Profile        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+model Campaign {
+  id          String     @id @default(uuid()) @db.Uuid
+  workspaceId String     @db.Uuid
+  name        String     @db.VarChar(255)
+  description String?    @db.Text
+  status      LinkStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  links       Link[]
+
+  @@index([workspaceId])
+  @@map("campaigns")
+}
+
+model Link {
+  id            String       @id @default(uuid()) @db.Uuid
+  workspaceId   String       @db.Uuid
+  campaignId    String?      @db.Uuid
+  shortCode     String       @unique @db.VarChar(32)
+  customAlias   String?      @unique @db.VarChar(64)
+  originalUrl   String       @db.Text
+  title         String?      @db.VarChar(255)
+  status        LinkStatus   @default(ACTIVE)
+  expiresAt     DateTime?
+  createdBy     String       @db.Uuid
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator       Profile      @relation("LinkCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  campaign      Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  clickEvents   ClickEvent[]
+
+  @@index([workspaceId])
+  @@index([campaignId])
+  @@index([createdBy])
+  @@index([status])
+  @@map("links")
+}
+
+model ClickEvent {
+  id          String      @id @default(uuid()) @db.Uuid
+  linkId      String      @db.Uuid
+  clickedAt   DateTime    @default(now())
+  referer     String?     @db.Text
+  country     String?     @db.VarChar(80)
+  city        String?     @db.VarChar(120)
+  deviceType  DeviceType  @default(UNKNOWN)
+  browser     String?     @db.VarChar(120)
+  os          String?     @db.VarChar(120)
+  ipHash      String?     @db.VarChar(255)
+  userAgent   String?     @db.Text
+  utmSource   String?     @db.VarChar(120)
+  utmMedium   String?     @db.VarChar(120)
+  utmCampaign String?     @db.VarChar(120)
+  createdAt   DateTime    @default(now())
+  link        Link        @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId, clickedAt])
+  @@index([clickedAt])
+  @@map("click_events")
+}
+
+model Subscription {
+  id                 String    @id @default(uuid()) @db.Uuid
+  workspaceId        String    @unique @db.Uuid
+  status             String
+  priceId            String
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id              String    @id @default(uuid()) @db.Uuid
+  workspaceId     String    @db.Uuid
+  stripeInvoiceId String    @unique @map("stripe_invoice_id")
+  amount          Int
+  currency        String
+  status          String
+  invoiceUrl      String?   @map("invoice_url")
+  createdAt       DateTime  @default(now())
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}

@@ -1,0 +1,48 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Cache & tooling
+.turbo
+.cache
+*.tsbuildinfo
+
+# Testing
+coverage
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Prisma generated
+.prisma
+
+# Logs
+*.log
+*.txt
+logs/
+
+# Documentation (local only)
+docs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Scratch / temp scripts
+check_profile.js
+check_profile.ts
+test-bootstrap.ts

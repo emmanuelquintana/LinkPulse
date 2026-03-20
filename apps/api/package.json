@@ -1,0 +1,42 @@
+{
+  "name": "@linkpulse/api",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@linkpulse/db": "workspace:*",
+    "@nestjs/common": "latest",
+    "@nestjs/config": "latest",
+    "@nestjs/core": "latest",
+    "@nestjs/platform-express": "latest",
+    "@nestjs/swagger": "^11.2.6",
+    "@prisma/client": "^6.4.1",
+    "@upstash/redis": "^1.37.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "jose": "latest",
+    "nanoid": "^5.1.7",
+    "reflect-metadata": "latest",
+    "rxjs": "latest",
+    "stripe": "^20.4.1",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "latest",
+    "@nestjs/schematics": "latest",
+    "@nestjs/testing": "latest",
+    "@types/express": "latest",
+    "@types/node": "latest",
+    "@types/uuid": "^11.0.0",
+    "eslint": "latest",
+    "ts-node": "latest",
+    "typescript": "latest"
+  }
+}
