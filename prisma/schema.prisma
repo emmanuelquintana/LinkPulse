@@ -76,6 +76,8 @@ model Workspace {
   subscription         Subscription?
   invoices             Invoice[]
   notifications        Notification[]
+  emailSubscribers     EmailSubscriber[]
+  emailCampaigns       EmailCampaign[]
 
   @@index([ownerUserId])
   @@map("workspaces")
@@ -202,4 +204,106 @@ model Notification {
   @@index([userId, readAt, createdAt])
   @@index([workspaceId])
   @@map("notifications")
+}
+
+model EmailSubscriber {
+  id          String          @id @default(uuid()) @db.Uuid
+  workspaceId String          @db.Uuid
+  email       String
+  firstName   String?         @map("first_name")
+  lastName    String?         @map("last_name")
+  status      String          @default("SUBSCRIBED")
+  metadata    Json?           @default("{}")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  logs        EmailLog[]
+  tags        SubscriberTag[]
+
+  @@unique([workspaceId, email])
+  @@index([workspaceId])
+  @@map("email_subscribers")
+}
+
+model SubscriberTag {
+  id           String          @id @default(uuid()) @db.Uuid
+  name         String
+  subscriberId String          @db.Uuid
+  subscriber   EmailSubscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriberId, name])
+  @@map("subscriber_tags")
+}
+
+model EmailCampaign {
+  id          String     @id @default(uuid()) @db.Uuid
+  workspaceId String     @db.Uuid
+  subject     String
+  previewText String?    @map("preview_text")
+  senderEmail String     @map("sender_email")
+  senderName  String     @map("sender_name")
+  htmlContent String     @map("html_content") @db.Text
+  status      String     @default("DRAFT")
+  sentAt      DateTime?  @map("sent_at")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  logs        EmailLog[]
+
+  @@index([workspaceId])
+  @@map("email_campaigns")
+}
+
+model EmailLog {
+  id           String          @id @default(uuid()) @db.Uuid
+  campaignId   String          @db.Uuid
+  subscriberId String          @db.Uuid
+  status       String          @default("PENDING")
+  bounceReason String?         @map("bounce_reason") @db.Text
+  sentAt       DateTime?       @map("sent_at")
+  openedAt     DateTime?       @map("opened_at")
+  clickedAt    DateTime?       @map("clicked_at")
+  campaign     EmailCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriber   EmailSubscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  opens        EmailOpen[]
+  clicks       EmailClick[]
+
+  @@index([campaignId])
+  @@index([subscriberId])
+  @@map("email_logs")
+}
+
+model EmailOpen {
+  id         String     @id @default(uuid()) @db.Uuid
+  emailLogId String     @db.Uuid
+  openedAt   DateTime   @default(now())
+  ipHash     String?    @db.VarChar(255)
+  userAgent  String?    @db.Text
+  country    String?    @db.VarChar(80)
+  city       String?    @db.VarChar(120)
+  deviceType DeviceType @default(UNKNOWN)
+  browser    String?    @db.VarChar(120)
+  os         String?    @db.VarChar(120)
+  emailLog   EmailLog   @relation(fields: [emailLogId], references: [id], onDelete: Cascade)
+
+  @@index([emailLogId])
+  @@map("email_opens")
+}
+
+model EmailClick {
+  id         String     @id @default(uuid()) @db.Uuid
+  emailLogId String     @db.Uuid
+  url        String     @db.Text
+  clickedAt  DateTime   @default(now())
+  ipHash     String?    @db.VarChar(255)
+  userAgent  String?    @db.Text
+  country    String?    @db.VarChar(80)
+  city       String?    @db.VarChar(120)
+  deviceType DeviceType @default(UNKNOWN)
+  browser    String?    @db.VarChar(120)
+  os         String?    @db.VarChar(120)
+  emailLog   EmailLog   @relation(fields: [emailLogId], references: [id], onDelete: Cascade)
+
+  @@index([emailLogId])
+  @@map("email_clicks")
 }

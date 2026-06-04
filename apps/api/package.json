@@ -33,6 +33,7 @@
     "@nestjs/schematics": "latest",
     "@nestjs/testing": "latest",
     "@types/express": "latest",
+    "@types/multer": "^2.1.0",
     "@types/node": "latest",
     "@types/uuid": "^11.0.0",
     "eslint": "latest",
