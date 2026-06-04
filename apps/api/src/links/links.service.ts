@@ -1,13 +1,22 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateLinkDto } from './dto/create-link.dto.js';
-import { customAlphabet } from 'nanoid';
-import { PaginationQueryDto } from '../shared/dto/pagination-query.dto.js';
-import { RedisService } from '../redis/redis.service.js';
-import { ProfilesService } from '../profiles/profiles.service.js';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { CreateLinkDto } from "./dto/create-link.dto.js";
+import { customAlphabet } from "nanoid";
+import { PaginationQueryDto } from "../shared/dto/pagination-query.dto.js";
+import { RedisService } from "../redis/redis.service.js";
+import { ProfilesService } from "../profiles/profiles.service.js";
+import { NotificationsService } from "../notifications/notifications.service.js";
 
 // Alphabet chosen to avoid ambiguous characters
-const nanoid = customAlphabet('23456789abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ', 7);
+const nanoid = customAlphabet(
+  "23456789abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ",
+  7,
+);
 
 @Injectable()
 export class LinksService {
@@ -15,10 +24,12 @@ export class LinksService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly profilesService: ProfilesService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(userId: string, email: string, createLinkDto: CreateLinkDto) {
-    const { destination, title, workspaceId, alias, campaignId } = createLinkDto;
+    const { destination, title, workspaceId, alias, campaignId } =
+      createLinkDto;
 
     // Ensure profile exists in our DB before creating link (foreign key constraint)
     await this.profilesService.bootstrapProfile(userId, email);
@@ -33,12 +44,16 @@ export class LinksService {
       });
 
       if (!isMember) {
-        throw new ForbiddenException('You do not have access to this workspace');
+        throw new ForbiddenException(
+          "You do not have access to this workspace",
+        );
       }
     } else {
-       // Note: schema says workspaceId is required. We must handle missing workspaceId.
-       // The user's checklist specifies workspace logic. Let's assume links must belong to a workspace.
-        throw new ForbiddenException('A workspaceId is required to create a link');
+      // Note: schema says workspaceId is required. We must handle missing workspaceId.
+      // The user's checklist specifies workspace logic. Let's assume links must belong to a workspace.
+      throw new ForbiddenException(
+        "A workspaceId is required to create a link",
+      );
     }
 
     // Validate campaign if provided
@@ -52,7 +67,9 @@ export class LinksService {
       }
 
       if (campaign.workspaceId !== workspaceId) {
-        throw new ForbiddenException('Campaign does not belong to the specified workspace');
+        throw new ForbiddenException(
+          "Campaign does not belong to the specified workspace",
+        );
       }
     }
 
@@ -67,7 +84,7 @@ export class LinksService {
     }
 
     // Generate a unique short code
-    let shortCode = '';
+    let shortCode = "";
     let isUnique = false;
     while (!isUnique) {
       shortCode = nanoid();
@@ -79,7 +96,7 @@ export class LinksService {
       }
     }
 
-    return this.prisma.link.create({
+    const link = await this.prisma.link.create({
       data: {
         originalUrl: destination,
         shortCode,
@@ -90,6 +107,28 @@ export class LinksService {
         createdBy: userId,
       },
     });
+
+    await this.notificationsService.createForUser({
+      userId,
+      workspaceId,
+      type: "LINK_CREATED",
+      title: "Link created",
+      body: `${title || alias || shortCode} is ready to share.`,
+      href: "/dashboard/links",
+    });
+
+    await this.notificationsService.createForWorkspaceMembers(
+      workspaceId,
+      {
+        type: "LINK_CREATED",
+        title: "New link in workspace",
+        body: `${title || alias || shortCode} was created.`,
+        href: "/dashboard/links",
+      },
+      [userId],
+    );
+
+    return link;
   }
 
   async findAllForUser(userId: string, paginationQuery: PaginationQueryDto) {
@@ -106,13 +145,13 @@ export class LinksService {
         },
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: { 
+        orderBy: { createdAt: "desc" },
+        include: {
           workspace: true,
           campaign: true,
           _count: {
-            select: { clickEvents: true }
-          }
+            select: { clickEvents: true },
+          },
         },
       }),
       this.prisma.link.count({
@@ -126,9 +165,9 @@ export class LinksService {
     ]);
 
     return {
-      items: items.map(item => ({
+      items: items.map((item) => ({
         ...item,
-        clicksCount: (item as any)._count?.clickEvents || 0
+        clicksCount: (item as any)._count?.clickEvents || 0,
       })),
       page,
       size: limit,
@@ -139,12 +178,12 @@ export class LinksService {
   async findOne(userId: string, id: string) {
     const link = await this.prisma.link.findUnique({
       where: { id },
-      include: { 
+      include: {
         workspace: true,
         campaign: true,
         _count: {
-          select: { clickEvents: true }
-        }
+          select: { clickEvents: true },
+        },
       },
     });
 
@@ -155,7 +194,7 @@ export class LinksService {
     // Validate ownership or workspace membership
     if (link.createdBy !== userId) {
       if (!link.workspaceId) {
-        throw new ForbiddenException('You do not have access to this link');
+        throw new ForbiddenException("You do not have access to this link");
       }
 
       const isMember = await this.prisma.workspaceMember.findFirst({
@@ -166,17 +205,21 @@ export class LinksService {
       });
 
       if (!isMember) {
-        throw new ForbiddenException('You do not have access to this link');
+        throw new ForbiddenException("You do not have access to this link");
       }
     }
 
     return {
       ...link,
-      clicksCount: (link as any)._count?.clickEvents || 0
+      clicksCount: (link as any)._count?.clickEvents || 0,
     };
   }
 
-  async partialUpdate(userId: string, id: string, data: Partial<CreateLinkDto>) {
+  async partialUpdate(
+    userId: string,
+    id: string,
+    data: Partial<CreateLinkDto>,
+  ) {
     // Rely on findOne for ownership checks
     const currentLink = await this.findOne(userId, id);
 
@@ -186,7 +229,9 @@ export class LinksService {
         where: { customAlias: data.alias },
       });
       if (existing && existing.id !== id) {
-        throw new ConflictException(`The alias '${data.alias}' is already taken`);
+        throw new ConflictException(
+          `The alias '${data.alias}' is already taken`,
+        );
       }
     }
 
@@ -218,7 +263,7 @@ export class LinksService {
 
     const archived = await this.prisma.link.update({
       where: { id },
-      data: { status: 'ARCHIVED' }, // using LinkStatus enum via string literal
+      data: { status: "ARCHIVED" }, // using LinkStatus enum via string literal
     });
 
     // Invalidate cache
@@ -226,6 +271,26 @@ export class LinksService {
     if (archived.customAlias) {
       await this.redis.del(`short:${archived.customAlias}`);
     }
+
+    await this.notificationsService.createForUser({
+      userId,
+      workspaceId: archived.workspaceId,
+      type: "LINK_ARCHIVED",
+      title: "Link archived",
+      body: `${currentLink.title || archived.customAlias || archived.shortCode} was archived.`,
+      href: "/dashboard/links",
+    });
+
+    await this.notificationsService.createForWorkspaceMembers(
+      archived.workspaceId,
+      {
+        type: "LINK_ARCHIVED",
+        title: "Link archived",
+        body: `${currentLink.title || archived.customAlias || archived.shortCode} was archived.`,
+        href: "/dashboard/links",
+      },
+      [userId],
+    );
 
     return archived;
   }

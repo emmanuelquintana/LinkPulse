@@ -51,25 +51,34 @@ export class BillingService {
     }
 
     // 2. Create session
-    const session = await this.stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: `${this.configService.get('APP_URL')}/dashboard/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${this.configService.get('APP_URL')}/dashboard/billing?canceled=true`,
-      metadata: {
-        workspaceId,
-        userId,
-      },
-    });
+    try {
+      if (!priceId || priceId.includes('...')) {
+        throw new Error(`Invalid Price ID: ${priceId}. Please check your environment variables.`);
+      }
 
-    return { url: session.url };
+      const session = await this.stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${this.configService.get('APP_URL')}/dashboard/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${this.configService.get('APP_URL')}/dashboard/billing?canceled=true`,
+        metadata: {
+          workspaceId,
+          userId,
+        },
+      });
+
+      return { url: session.url };
+    } catch (err: any) {
+      this.logger.error(`Stripe Checkout Session creation failed: ${err.message}`, err.stack);
+      throw new Error(`Billing Error: ${err.message}`);
+    }
   }
 
   async createCustomerPortalSession(userId: string, workspaceId: string) {

@@ -1,12 +1,17 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
 
 export function UserProfile() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function loadProfile() {
@@ -31,6 +36,28 @@ export function UserProfile() {
     return () => window.removeEventListener('profile-updated', handleUpdate);
   }, []);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push('/login');
+      router.refresh();
+    } catch (err) {
+      console.error('Failed to sign out', err);
+    }
+  };
+
   const getDisplayName = () => {
     if (profile?.firstName || profile?.lastName) {
       return `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
@@ -48,21 +75,57 @@ export function UserProfile() {
   };
 
   return (
-    <Link href="/dashboard/profile" className="p-4 border-t border-gray-200 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors no-underline">
-       <div className="h-9 w-9 border border-indigo-100 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-indigo-600 shrink-0 text-sm overflow-hidden">
-         {profile?.avatarUrl ? (
-           <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-         ) : (
-           getInitials()
-         )}
-       </div>
-       <div className="flex flex-col flex-1 min-w-0">
+    <div className="relative border-t border-gray-200 p-4" ref={menuRef}>
+      {/* Dropdown Menu (Pops up) */}
+      {menuOpen && (
+        <div className="absolute bottom-16 left-4 right-4 bg-white rounded-lg shadow-lg border border-gray-100 py-1.5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+          <Link
+            href="/dashboard/profile"
+            onClick={() => setMenuOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors no-underline"
+          >
+            <span className="material-symbols-outlined text-gray-400 text-lg">person</span>
+            View Profile
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left font-medium border-none bg-transparent cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-red-400 text-lg">logout</span>
+            Sign Out
+          </button>
+        </div>
+      )}
+
+      {/* Profile Card */}
+      <div 
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="flex items-center gap-3 hover:bg-gray-50 cursor-pointer p-2 -mx-2 rounded-lg transition-colors select-none"
+      >
+        <div className="h-9 w-9 border border-indigo-100 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-indigo-600 shrink-0 text-sm overflow-hidden">
+          {profile?.avatarUrl ? (
+            <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+          ) : (
+            getInitials()
+          )}
+        </div>
+        <div className="flex flex-col flex-1 min-w-0">
           <span className="text-sm font-semibold text-gray-900 leading-tight truncate">
             {loading ? 'Loading...' : getDisplayName()}
           </span>
           <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Pro Plan</span>
-       </div>
-       <span className="material-symbols-outlined text-gray-400">more_vert</span>
-    </Link>
+        </div>
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen(!menuOpen);
+          }}
+          className="p-1 hover:bg-gray-100 rounded-md flex items-center justify-center transition-colors text-gray-400 hover:text-gray-600 border-none bg-transparent cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-xl">more_vert</span>
+        </button>
+      </div>
+    </div>
   );
 }
+

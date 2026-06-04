@@ -20,8 +20,12 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
     headers.set('Content-Type', 'application/json');
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.API_URL ||
+    'http://localhost:3001/api/v1';
+  const normalizedBaseUrl = baseUrl.replace(/\/$/, '');
+  const url = `${normalizedBaseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   console.log(`[fetchApi] Fetching: ${url}`);
   

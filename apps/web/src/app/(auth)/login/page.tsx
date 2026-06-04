@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { fetchApi } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,20 +18,39 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // Call backend API login endpoint which formats responses using ApiResponseBuilder
+      const response = await fetchApi('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
+      const sessionData = response?.data || response;
+
+      if (!sessionData?.access_token || !sessionData?.refresh_token) {
+        throw new Error('Failed to retrieve session tokens');
+      }
+
+      // Initialize session in Supabase browser client
+      const supabase = createClient();
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: sessionData.access_token,
+        refresh_token: sessionData.refresh_token,
+      });
+
+      if (sessionError) {
+        throw sessionError;
+      }
+
       router.push('/dashboard');
       router.refresh();
+    } catch (err: any) {
+      console.error('[Login] Authentication failed:', err);
+      setError(err.message || 'Invalid login credentials');
+      setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans w-full">

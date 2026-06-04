@@ -7,6 +7,7 @@ import { TransformInterceptor } from "./shared/interceptors/transform.intercepto
 import { AllExceptionsFilter } from "./shared/filters/all-exceptions.filter.js";
 
 async function bootstrap() {
+  console.log("[DEBUG] DATABASE_URL at bootstrap:", process.env.DATABASE_URL);
   const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.setGlobalPrefix("api");

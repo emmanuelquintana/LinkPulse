@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { fetchApi } from '@/lib/api';
+import React, { useState } from "react";
+import { fetchApi } from "@/lib/api";
 
 interface CreateCampaignModalProps {
   isOpen: boolean;
@@ -10,9 +10,14 @@ interface CreateCampaignModalProps {
   workspaceId: string;
 }
 
-export default function CreateCampaignModal({ isOpen, onClose, onSuccess, workspaceId }: CreateCampaignModalProps) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+export default function CreateCampaignModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  workspaceId,
+}: CreateCampaignModalProps) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,20 +29,21 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess, worksp
     setError(null);
 
     try {
-      await fetchApi('/campaigns', {
-        method: 'POST',
+      await fetchApi("/campaigns", {
+        method: "POST",
         body: JSON.stringify({
           workspaceId,
           name,
           description,
         }),
       });
+      window.dispatchEvent(new Event("notifications-updated"));
       onSuccess();
       onClose();
-      setName('');
-      setDescription('');
+      setName("");
+      setDescription("");
     } catch (err: any) {
-      setError(err.message || 'Failed to create campaign');
+      setError(err.message || "Failed to create campaign");
     } finally {
       setLoading(false);
     }
@@ -47,8 +53,13 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess, worksp
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="text-xl font-bold text-gray-900">Create New Campaign</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <h3 className="text-xl font-bold text-gray-900">
+            Create New Campaign
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -62,7 +73,12 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess, worksp
           )}
 
           <div className="space-y-1.5">
-            <label htmlFor="name" className="text-sm font-semibold text-gray-700">Campaign Name</label>
+            <label
+              htmlFor="name"
+              className="text-sm font-semibold text-gray-700"
+            >
+              Campaign Name
+            </label>
             <input
               id="name"
               type="text"
@@ -75,7 +91,12 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess, worksp
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="description" className="text-sm font-semibold text-gray-700">Description (Optional)</label>
+            <label
+              htmlFor="description"
+              className="text-sm font-semibold text-gray-700"
+            >
+              Description (Optional)
+            </label>
             <textarea
               id="description"
               rows={3}
@@ -102,7 +123,7 @@ export default function CreateCampaignModal({ isOpen, onClose, onSuccess, worksp
               {loading ? (
                 <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                'Create Campaign'
+                "Create Campaign"
               )}
             </button>
           </div>

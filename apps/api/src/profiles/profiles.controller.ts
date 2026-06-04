@@ -21,6 +21,7 @@ export class ProfilesController {
   async bootstrapProfile(@Req() req: Request & { user?: any }) {
     const userId = req.user?.sub;
     const email = req.user?.email;
+    const metadata = req.user?.user_metadata;
 
     if (!userId || !email) {
       return {
@@ -29,7 +30,7 @@ export class ProfilesController {
       };
     }
 
-    const profile = await this.profilesService.bootstrapProfile(userId, email);
+    const profile = await this.profilesService.bootstrapProfile(userId, email, metadata);
     return profile;
   }
 

@@ -1,10 +1,18 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { CreateCampaignDto } from './dto/create-campaign.dto.js';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { CreateCampaignDto } from "./dto/create-campaign.dto.js";
+import { NotificationsService } from "../notifications/notifications.service.js";
 
 @Injectable()
 export class CampaignsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async create(userId: string, createCampaignDto: CreateCampaignDto) {
     const { workspaceId, name, description } = createCampaignDto;
@@ -18,16 +26,38 @@ export class CampaignsService {
     });
 
     if (!isMember) {
-      throw new ForbiddenException('You do not have access to this workspace');
+      throw new ForbiddenException("You do not have access to this workspace");
     }
 
-    return this.prisma.campaign.create({
+    const campaign = await this.prisma.campaign.create({
       data: {
         workspaceId,
         name,
         description,
       },
     });
+
+    await this.notificationsService.createForUser({
+      userId,
+      workspaceId,
+      type: "CAMPAIGN_CREATED",
+      title: "Campaign created",
+      body: `${campaign.name} is ready for new links.`,
+      href: "/dashboard/campaigns",
+    });
+
+    await this.notificationsService.createForWorkspaceMembers(
+      workspaceId,
+      {
+        type: "CAMPAIGN_CREATED",
+        title: "New campaign in workspace",
+        body: `${campaign.name} is ready for new links.`,
+        href: "/dashboard/campaigns",
+      },
+      [userId],
+    );
+
+    return campaign;
   }
 
   async findAllForWorkspace(userId: string, workspaceId: string) {
@@ -40,14 +70,14 @@ export class CampaignsService {
     });
 
     if (!isMember) {
-      throw new ForbiddenException('You do not have access to this workspace');
+      throw new ForbiddenException("You do not have access to this workspace");
     }
 
     return this.prisma.campaign.findMany({
       where: {
         workspaceId,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -70,7 +100,7 @@ export class CampaignsService {
     });
 
     if (!isMember) {
-      throw new ForbiddenException('You do not have access to this campaign');
+      throw new ForbiddenException("You do not have access to this campaign");
     }
 
     return campaign;

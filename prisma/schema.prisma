@@ -34,25 +34,36 @@ enum DeviceType {
   UNKNOWN
 }
 
+enum NotificationType {
+  LINK_CREATED
+  LINK_ARCHIVED
+  CAMPAIGN_CREATED
+  WORKSPACE_CREATED
+  MEMBER_ADDED
+  BILLING
+  SYSTEM
+}
+
 model Profile {
-  id          String            @id @db.Uuid
-  email       String            @unique
-  firstName   String?           @map("first_name")
-  lastName    String?           @map("last_name")
-  avatarUrl   String?           @map("avatar_url")
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  workspaces  Workspace[]       @relation("WorkspaceOwner")
-  memberships WorkspaceMember[]
-  links       Link[]            @relation("LinkCreator")
+  id            String            @id @db.Uuid
+  email         String            @unique
+  firstName     String?           @map("first_name")
+  lastName      String?           @map("last_name")
+  avatarUrl     String?           @map("avatar_url")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  workspaces    Workspace[]       @relation("WorkspaceOwner")
+  memberships   WorkspaceMember[]
+  links         Link[]            @relation("LinkCreator")
+  notifications Notification[]
 
   @@map("profiles")
 }
 
 model Workspace {
-  id          String            @id @default(uuid()) @db.Uuid
-  name        String
-  ownerUserId String            @db.Uuid
+  id                   String            @id @default(uuid()) @db.Uuid
+  name                 String
+  ownerUserId          String            @db.Uuid
   plan                 WorkspacePlan     @default(FREE)
   stripeCustomerId     String?           @unique @map("stripe_customer_id")
   stripeSubscriptionId String?           @unique @map("stripe_subscription_id")
@@ -64,19 +75,20 @@ model Workspace {
   campaigns            Campaign[]
   subscription         Subscription?
   invoices             Invoice[]
+  notifications        Notification[]
 
   @@index([ownerUserId])
   @@map("workspaces")
 }
 
 model WorkspaceMember {
-  id          String         @id @default(uuid()) @db.Uuid
-  workspaceId String         @db.Uuid
-  userId      String         @db.Uuid
-  role        WorkspaceRole  @default(MEMBER)
-  createdAt   DateTime       @default(now())
-  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user        Profile        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String        @id @default(uuid()) @db.Uuid
+  workspaceId String        @db.Uuid
+  userId      String        @db.Uuid
+  role        WorkspaceRole @default(MEMBER)
+  createdAt   DateTime      @default(now())
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, userId])
   @@index([userId])
@@ -99,22 +111,22 @@ model Campaign {
 }
 
 model Link {
-  id            String       @id @default(uuid()) @db.Uuid
-  workspaceId   String       @db.Uuid
-  campaignId    String?      @db.Uuid
-  shortCode     String       @unique @db.VarChar(32)
-  customAlias   String?      @unique @db.VarChar(64)
-  originalUrl   String       @db.Text
-  title         String?      @db.VarChar(255)
-  status        LinkStatus   @default(ACTIVE)
-  expiresAt     DateTime?
-  createdBy     String       @db.Uuid
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  workspace     Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  creator       Profile      @relation("LinkCreator", fields: [createdBy], references: [id], onDelete: Restrict)
-  campaign      Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  clickEvents   ClickEvent[]
+  id          String       @id @default(uuid()) @db.Uuid
+  workspaceId String       @db.Uuid
+  campaignId  String?      @db.Uuid
+  shortCode   String       @unique @db.VarChar(32)
+  customAlias String?      @unique @db.VarChar(64)
+  originalUrl String       @db.Text
+  title       String?      @db.VarChar(255)
+  status      LinkStatus   @default(ACTIVE)
+  expiresAt   DateTime?
+  createdBy   String       @db.Uuid
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator     Profile      @relation("LinkCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  campaign    Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  clickEvents ClickEvent[]
 
   @@index([workspaceId])
   @@index([campaignId])
@@ -124,22 +136,22 @@ model Link {
 }
 
 model ClickEvent {
-  id          String      @id @default(uuid()) @db.Uuid
-  linkId      String      @db.Uuid
-  clickedAt   DateTime    @default(now())
-  referer     String?     @db.Text
-  country     String?     @db.VarChar(80)
-  city        String?     @db.VarChar(120)
-  deviceType  DeviceType  @default(UNKNOWN)
-  browser     String?     @db.VarChar(120)
-  os          String?     @db.VarChar(120)
-  ipHash      String?     @db.VarChar(255)
-  userAgent   String?     @db.Text
-  utmSource   String?     @db.VarChar(120)
-  utmMedium   String?     @db.VarChar(120)
-  utmCampaign String?     @db.VarChar(120)
-  createdAt   DateTime    @default(now())
-  link        Link        @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  id          String     @id @default(uuid()) @db.Uuid
+  linkId      String     @db.Uuid
+  clickedAt   DateTime   @default(now())
+  referer     String?    @db.Text
+  country     String?    @db.VarChar(80)
+  city        String?    @db.VarChar(120)
+  deviceType  DeviceType @default(UNKNOWN)
+  browser     String?    @db.VarChar(120)
+  os          String?    @db.VarChar(120)
+  ipHash      String?    @db.VarChar(255)
+  userAgent   String?    @db.Text
+  utmSource   String?    @db.VarChar(120)
+  utmMedium   String?    @db.VarChar(120)
+  utmCampaign String?    @db.VarChar(120)
+  createdAt   DateTime   @default(now())
+  link        Link       @relation(fields: [linkId], references: [id], onDelete: Cascade)
 
   @@index([linkId, clickedAt])
   @@index([clickedAt])
@@ -147,15 +159,15 @@ model ClickEvent {
 }
 
 model Subscription {
-  id                 String    @id @default(uuid()) @db.Uuid
-  workspaceId        String    @unique @db.Uuid
-  status             String
-  priceId            String
-  currentPeriodEnd   DateTime
-  cancelAtPeriodEnd  Boolean   @default(false)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id                String    @id @default(uuid()) @db.Uuid
+  workspaceId       String    @unique @db.Uuid
+  status            String
+  priceId           String
+  currentPeriodEnd  DateTime
+  cancelAtPeriodEnd Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
 }
@@ -172,4 +184,22 @@ model Invoice {
   workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("invoices")
+}
+
+model Notification {
+  id          String           @id @default(uuid()) @db.Uuid
+  userId      String           @db.Uuid
+  workspaceId String?          @db.Uuid
+  type        NotificationType @default(SYSTEM)
+  title       String           @db.VarChar(140)
+  body        String?          @db.Text
+  href        String?          @db.Text
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+  user        Profile          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([workspaceId])
+  @@map("notifications")
 }

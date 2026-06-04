@@ -11,11 +11,35 @@ export class ProfilesService {
         });
     }
 
-    async bootstrapProfile(userId: string, email: string) {
-        console.log(`[ProfilesService] Bootstrapping profile for ${userId} (${email})`);
+    async bootstrapProfile(userId: string, email: string, metadata?: any) {
+        console.log(`[ProfilesService] Bootstrapping profile for ${userId} (${email})`, metadata ? 'with metadata' : 'without metadata');
         const existing = await this.getProfile(userId);
+        
+        // Extract metadata if available
+        const metaFirstName = metadata?.first_name || (metadata?.full_name ? metadata.full_name.split(' ')[0] : undefined);
+        const metaLastName = metadata?.last_name || (metadata?.full_name ? metadata.full_name.split(' ').slice(1).join(' ') : undefined);
+        const metaAvatarUrl = metadata?.avatar_url || metadata?.picture;
+
         if (existing) {
-            console.log(`[ProfilesService] Found existing profile for ${userId}:`, existing);
+            console.log(`[ProfilesService] Found existing profile for ${userId}`);
+            
+            // If existing profile is missing data but metadata has it, update it
+            const needsUpdate = (!existing.firstName && metaFirstName) || 
+                              (!existing.lastName && metaLastName) || 
+                              (!existing.avatarUrl && metaAvatarUrl);
+            
+            if (needsUpdate) {
+                console.log(`[ProfilesService] Updating existing profile with missing metadata`);
+                return this.prisma.profile.update({
+                    where: { id: userId },
+                    data: {
+                        firstName: existing.firstName || metaFirstName,
+                        lastName: existing.lastName || metaLastName,
+                        avatarUrl: existing.avatarUrl || metaAvatarUrl,
+                    }
+                });
+            }
+            
             return existing;
         }
 
@@ -24,6 +48,9 @@ export class ProfilesService {
             data: {
                 id: userId,
                 email,
+                firstName: metaFirstName,
+                lastName: metaLastName,
+                avatarUrl: metaAvatarUrl,
             },
         });
     }

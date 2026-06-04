@@ -5,10 +5,11 @@ import { PrismaModule } from "./prisma/prisma.module.js";
 import { ProfilesModule } from "./profiles/profiles.module.js";
 import { WorkspacesModule } from "./workspaces/workspaces.module.js";
 import { TraceIdMiddleware } from "./shared/middleware/trace-id.middleware.js";
-import { LinksModule } from './links/links.module.js';
-import { AnalyticsModule } from './analytics/analytics.module.js';
-import { CampaignsModule } from './campaigns/campaigns.module.js';
-import { BillingModule } from './billing/billing.module.js';
+import { LinksModule } from "./links/links.module.js";
+import { AnalyticsModule } from "./analytics/analytics.module.js";
+import { CampaignsModule } from "./campaigns/campaigns.module.js";
+import { BillingModule } from "./billing/billing.module.js";
+import { NotificationsModule } from "./notifications/notifications.module.js";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js";
 
@@ -16,7 +17,7 @@ import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '../../.env',
+      envFilePath: "../../.env",
     }),
     PrismaModule,
     HealthModule,
@@ -26,6 +27,7 @@ import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js
     AnalyticsModule,
     CampaignsModule,
     BillingModule,
+    NotificationsModule,
   ],
   providers: [
     {

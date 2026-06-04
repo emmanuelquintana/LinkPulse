@@ -35,7 +35,12 @@ function BillingContent() {
     if (!selectedWorkspaceId) return;
     setProcessing(true);
     try {
-      const priceId = 'price_1Qw9yaF20c...'; // Using placeholder
+      const priceId = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
+      
+      if (!priceId) {
+        throw new Error("Stripe Price ID is not configured");
+      }
+
       const response = await fetchApi('/billing/checkout', {
         method: 'POST',
         body: JSON.stringify({
