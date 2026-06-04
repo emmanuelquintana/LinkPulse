@@ -32,7 +32,9 @@ export class EmailSenderService {
         to: [payload.to],
         subject: payload.subject,
         html: payload.html,
-        headers: payload.messageId ? { 'X-Email-Log-Id': payload.messageId } : undefined,
+        tags: payload.messageId
+          ? [{ name: 'email_log_id', value: payload.messageId }]
+          : undefined,
       }),
     });
 
