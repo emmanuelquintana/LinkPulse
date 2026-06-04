@@ -23,7 +23,7 @@ export class EmailCampaignsService {
     if (!member) throw new ForbiddenException('You do not have access to this workspace');
   }
 
-  async create(userId: string, dto: CreateEmailCampaignDto) {
+  async create(userId: string, dto: CreateEmailCampaignDto): Promise<any> {
     await this.assertWorkspaceMember(userId, dto.workspaceId);
 
     return this.prisma.emailCampaign.create({
@@ -34,12 +34,15 @@ export class EmailCampaignsService {
         senderEmail: dto.senderEmail,
         senderName: dto.senderName,
         htmlContent: dto.htmlContent,
+        cc: dto.cc?.join(',') ?? null,
+        bcc: dto.bcc?.join(',') ?? null,
+        replyTo: dto.replyTo ?? null,
         status: 'DRAFT',
       },
     });
   }
 
-  async findAll(userId: string, workspaceId: string, pagination: PaginationQueryDto) {
+  async findAll(userId: string, workspaceId: string, pagination: PaginationQueryDto): Promise<any> {
     await this.assertWorkspaceMember(userId, workspaceId);
 
     const page = pagination.page ?? 1;
@@ -59,7 +62,7 @@ export class EmailCampaignsService {
     return { items, page, size, elements };
   }
 
-  async findOne(userId: string, workspaceId: string, id: string) {
+  async findOne(userId: string, workspaceId: string, id: string): Promise<any> {
     await this.assertWorkspaceMember(userId, workspaceId);
 
     const campaign = await this.prisma.emailCampaign.findFirst({
@@ -69,7 +72,7 @@ export class EmailCampaignsService {
     return campaign;
   }
 
-  async update(userId: string, workspaceId: string, id: string, dto: Partial<CreateEmailCampaignDto>) {
+  async update(userId: string, workspaceId: string, id: string, dto: Partial<CreateEmailCampaignDto>): Promise<any> {
     await this.assertWorkspaceMember(userId, workspaceId);
 
     const campaign = await this.prisma.emailCampaign.findFirst({ where: { id, workspaceId } });
@@ -84,6 +87,9 @@ export class EmailCampaignsService {
         senderEmail: dto.senderEmail,
         senderName: dto.senderName,
         htmlContent: dto.htmlContent,
+        cc: dto.cc !== undefined ? (dto.cc?.join(',') ?? null) : undefined,
+        bcc: dto.bcc !== undefined ? (dto.bcc?.join(',') ?? null) : undefined,
+        replyTo: dto.replyTo !== undefined ? (dto.replyTo ?? null) : undefined,
       },
     });
   }
@@ -104,6 +110,10 @@ export class EmailCampaignsService {
     if (!subscribers.length) return { sent: 0, message: 'No active subscribers found' };
 
     const redirectorUrl = process.env.REDIRECTOR_URL ?? 'http://localhost:3002';
+    const settings = await this.emailSender.getWorkspaceSettings(workspaceId);
+
+    const ccList = campaign.cc ? campaign.cc.split(',').map((e) => e.trim()).filter(Boolean) : [];
+    const bccList = campaign.bcc ? campaign.bcc.split(',').map((e) => e.trim()).filter(Boolean) : [];
 
     await this.prisma.emailCampaign.update({
       where: { id: campaignId },
@@ -130,14 +140,20 @@ export class EmailCampaignsService {
       );
 
       try {
-        await this.emailSender.send({
-          to: subscriber.email,
-          from: campaign.senderEmail,
-          fromName: campaign.senderName,
-          subject: campaign.subject,
-          html: personalizedHtml,
-          messageId: log.id,
-        });
+        await this.emailSender.sendWithSettings(
+          {
+            to: subscriber.email,
+            from: settings?.fromEmail ?? campaign.senderEmail,
+            fromName: settings?.fromName ?? campaign.senderName,
+            subject: campaign.subject,
+            html: personalizedHtml,
+            cc: ccList.length ? ccList : undefined,
+            bcc: bccList.length ? bccList : undefined,
+            replyTo: campaign.replyTo ?? undefined,
+            messageId: log.id,
+          },
+          settings,
+        );
 
         await this.prisma.emailLog.update({
           where: { id: log.id },
@@ -167,7 +183,6 @@ export class EmailCampaignsService {
     redirectorUrl: string,
     firstName: string,
   ): string {
-    // Replace <a href="..."> links with tracking URLs
     let html = htmlContent.replace(
       /<a\s+([^>]*?)href="([^"]+)"([^>]*?)>/gi,
       (_match, before, url, after) => {
@@ -177,11 +192,9 @@ export class EmailCampaignsService {
       },
     );
 
-    // Inject open tracking pixel before </body>
     const pixel = `<img src="${redirectorUrl}/t/o/${emailLogId}" width="1" height="1" style="display:none;border:0;" alt="" />`;
     html = html.includes('</body>') ? html.replace('</body>', `${pixel}</body>`) : html + pixel;
 
-    // Inject unsubscribe footer
     const unsubUrl = `${redirectorUrl}/t/u/${emailLogId}`;
     const footer = `
 <div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center;">
@@ -190,8 +203,6 @@ export class EmailCampaignsService {
 </div>`;
 
     html = html.includes('</body>') ? html.replace('</body>', `${footer}</body>`) : html + footer;
-
-    // Replace {{firstName}} placeholders
     return html.replace(/\{\{firstName\}\}/gi, firstName);
   }
 }

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, IsEmail } from 'class-validator';
+import { IsArray, IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateEmailCampaignDto {
   @ApiProperty({ example: 'workspace-uuid' })
@@ -12,7 +12,7 @@ export class CreateEmailCampaignDto {
   @IsNotEmpty()
   subject!: string;
 
-  @ApiPropertyOptional({ example: 'Check what\'s new this month' })
+  @ApiPropertyOptional({ example: "Check what's new this month" })
   @IsOptional()
   @IsString()
   previewText?: string;
@@ -30,4 +30,21 @@ export class CreateEmailCampaignDto {
   @IsString()
   @IsNotEmpty()
   htmlContent!: string;
+
+  @ApiPropertyOptional({ example: ['manager@company.com'], type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsEmail({}, { each: true })
+  cc?: string[];
+
+  @ApiPropertyOptional({ example: ['analytics@company.com'], type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsEmail({}, { each: true })
+  bcc?: string[];
+
+  @ApiPropertyOptional({ example: 'support@company.com' })
+  @IsOptional()
+  @IsEmail()
+  replyTo?: string;
 }

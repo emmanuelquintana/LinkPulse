@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
-import { Mail, Plus, Send, BarChart2, Clock, CheckCircle, X, FileText } from 'lucide-react';
+import { Mail, Plus, Send, BarChart2, Clock, CheckCircle, X, FileText, Settings, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
 interface EmailCampaign {
@@ -105,6 +105,13 @@ export default function EmailsPage() {
               <option key={ws.id} value={ws.id}>{ws.name}</option>
             ))}
           </select>
+          <Link
+            href={`/emails/settings?workspaceId=${selectedWorkspace}`}
+            className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all"
+          >
+            <Settings className="w-4 h-4" />
+            SMTP Settings
+          </Link>
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-95"
@@ -218,9 +225,16 @@ function CreateCampaignModal({
     senderName: '',
     senderEmail: '',
     htmlContent: '',
+    cc: '',
+    bcc: '',
+    replyTo: '',
   });
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const parseEmails = (val: string) =>
+    val.split(',').map((e) => e.trim()).filter((e) => e.includes('@'));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -229,7 +243,17 @@ function CreateCampaignModal({
     try {
       await fetchApi('/email-campaigns', {
         method: 'POST',
-        body: JSON.stringify({ ...form, workspaceId }),
+        body: JSON.stringify({
+          workspaceId,
+          subject: form.subject,
+          previewText: form.previewText || undefined,
+          senderName: form.senderName,
+          senderEmail: form.senderEmail,
+          htmlContent: form.htmlContent,
+          cc: form.cc ? parseEmails(form.cc) : undefined,
+          bcc: form.bcc ? parseEmails(form.bcc) : undefined,
+          replyTo: form.replyTo || undefined,
+        }),
       });
       onSuccess();
     } catch (err: any) {
@@ -239,81 +263,96 @@ function CreateCampaignModal({
     }
   }
 
+  const inputCls = "w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none";
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
           <h2 className="text-xl font-bold text-gray-900">New Email Campaign</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X className="w-5 h-5" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Subject & Preview */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Subject line *</label>
-            <input
-              required
-              value={form.subject}
-              onChange={(e) => setForm({ ...form, subject: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-              placeholder="Our May Newsletter"
-            />
+            <input required value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })}
+              className={inputCls} placeholder="Our May Newsletter" />
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Preview text</label>
-            <input
-              value={form.previewText}
-              onChange={(e) => setForm({ ...form, previewText: e.target.value })}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-              placeholder="What's new this month…"
-            />
+            <input value={form.previewText} onChange={(e) => setForm({ ...form, previewText: e.target.value })}
+              className={inputCls} placeholder="What's new this month…" />
           </div>
+
+          {/* Sender */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Sender name *</label>
-              <input
-                required
-                value={form.senderName}
-                onChange={(e) => setForm({ ...form, senderName: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                placeholder="My Company"
-              />
+              <input required value={form.senderName} onChange={(e) => setForm({ ...form, senderName: e.target.value })}
+                className={inputCls} placeholder="My Company" />
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Sender email *</label>
-              <input
-                required
-                type="email"
-                value={form.senderEmail}
-                onChange={(e) => setForm({ ...form, senderEmail: e.target.value })}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                placeholder="noreply@company.com"
-              />
+              <input required type="email" value={form.senderEmail} onChange={(e) => setForm({ ...form, senderEmail: e.target.value })}
+                className={inputCls} placeholder="noreply@company.com" />
             </div>
           </div>
+
+          {/* Advanced (CC / BCC / Reply-To) */}
+          <div className="border border-gray-100 rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <span>Advanced options (CC · BCC · Reply-To)</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+            </button>
+            {showAdvanced && (
+              <div className="p-4 space-y-3 bg-white">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">CC <span className="text-gray-400 font-normal">(comma separated)</span></label>
+                  <input value={form.cc} onChange={(e) => setForm({ ...form, cc: e.target.value })}
+                    className={inputCls} placeholder="manager@company.com, director@company.com" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">BCC <span className="text-gray-400 font-normal">(copia oculta, comma separated)</span></label>
+                  <input value={form.bcc} onChange={(e) => setForm({ ...form, bcc: e.target.value })}
+                    className={inputCls} placeholder="analytics@company.com" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Reply-To</label>
+                  <input type="email" value={form.replyTo} onChange={(e) => setForm({ ...form, replyTo: e.target.value })}
+                    className={inputCls} placeholder="support@company.com" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* HTML Content */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               HTML Content *
               <span className="ml-2 text-xs text-gray-400 font-normal">Use {'{{firstName}}'} for personalization</span>
             </label>
-            <textarea
-              required
-              rows={10}
-              value={form.htmlContent}
+            <textarea required rows={9} value={form.htmlContent}
               onChange={(e) => setForm({ ...form, htmlContent: e.target.value })}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none resize-y"
-              placeholder="<h1>Hello {{firstName}}!</h1><p>Check out <a href='https://yoursite.com'>our latest updates</a>.</p>"
+              placeholder={"<h1>Hello {{firstName}}!</h1>\n<p>Check out <a href='https://yoursite.com'>our latest news</a>.</p>"}
             />
           </div>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="flex-1 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50">
+            <button type="submit" disabled={saving}
+              className="flex-1 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50">
               {saving ? 'Saving…' : 'Save as Draft'}
             </button>
           </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
-import { Users, Upload, Plus, Tag, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Users, Upload, Plus, Tag, Trash2, ChevronLeft, ChevronRight, X, Download, FileSpreadsheet } from 'lucide-react';
 
 interface Subscriber {
   id: string;
@@ -37,6 +37,23 @@ export default function SubscribersPage() {
   const [csvResult, setCsvResult] = useState<{ imported: number; skipped: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pageSize = 20;
+
+  function downloadTemplate() {
+    const header = 'email,firstName,lastName,tags';
+    const rows = [
+      'juan.perez@ejemplo.com,Juan,Pérez,newsletter|vip',
+      'maria.garcia@ejemplo.com,María,García,newsletter',
+      'carlos.lopez@ejemplo.com,Carlos,López,',
+    ];
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'subscribers_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   useEffect(() => {
     async function loadWorkspaces() {
@@ -129,9 +146,18 @@ export default function SubscribersPage() {
             ))}
           </select>
 
+          <button
+            onClick={downloadTemplate}
+            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all shadow-sm"
+            title="Download CSV template"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-green-600" />
+            Plantilla CSV
+          </button>
+
           <label className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all shadow-sm cursor-pointer">
             <Upload className="w-4 h-4" />
-            {csvUploading ? 'Importing…' : 'Import CSV'}
+            {csvUploading ? 'Importando…' : 'Importar CSV'}
             <input
               ref={fileInputRef}
               type="file"
@@ -146,7 +172,23 @@ export default function SubscribersPage() {
             className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            Add Subscriber
+            Añadir
+          </button>
+        </div>
+      </div>
+
+      {/* CSV Format Hint */}
+      <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3 text-sm text-blue-700">
+        <Download className="w-4 h-4 mt-0.5 shrink-0" />
+        <div>
+          <span className="font-semibold">Formato CSV esperado:</span>{' '}
+          columnas <code className="bg-blue-100 px-1 rounded">email</code>,{' '}
+          <code className="bg-blue-100 px-1 rounded">firstName</code>,{' '}
+          <code className="bg-blue-100 px-1 rounded">lastName</code>,{' '}
+          <code className="bg-blue-100 px-1 rounded">tags</code>{' '}
+          (tags separadas por <code className="bg-blue-100 px-1 rounded">|</code>).{' '}
+          <button onClick={downloadTemplate} className="underline font-semibold hover:text-blue-900">
+            Descarga la plantilla aquí.
           </button>
         </div>
       </div>
