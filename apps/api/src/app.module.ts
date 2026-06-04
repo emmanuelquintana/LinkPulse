@@ -10,6 +10,7 @@ import { AnalyticsModule } from "./analytics/analytics.module.js";
 import { CampaignsModule } from "./campaigns/campaigns.module.js";
 import { BillingModule } from "./billing/billing.module.js";
 import { NotificationsModule } from "./notifications/notifications.module.js";
+import { EmailMarketingModule } from "./email-marketing/email-marketing.module.js";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js";
 
@@ -28,6 +29,7 @@ import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js
     CampaignsModule,
     BillingModule,
     NotificationsModule,
+    EmailMarketingModule,
   ],
   providers: [
     {

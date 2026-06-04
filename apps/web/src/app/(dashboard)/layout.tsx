@@ -65,6 +65,33 @@ export default function DashboardLayout({
                 Campaigns
               </Link>
               <Link
+                href="/subscribers"
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  group
+                </span>
+                Audience
+              </Link>
+              <Link
+                href="/emails"
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  mark_email_read
+                </span>
+                Email Campaigns
+              </Link>
+              <Link
+                href="/emails/settings"
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  settings
+                </span>
+                Email Settings
+              </Link>
+              <Link
                 href="/dashboard/api"
                 className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
               >
