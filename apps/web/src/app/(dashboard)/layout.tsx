@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Header } from "@/app/(dashboard)/Header";
 import { UserProfile } from "@/app/(dashboard)/UserProfile";
+import { SidebarNav } from "@/app/(dashboard)/SidebarNav";
 
 export default function DashboardLayout({
   children,
@@ -23,94 +24,7 @@ export default function DashboardLayout({
           </div>
 
           {/* Navigation Links */}
-          <div className="px-4 mt-2">
-            <p className="px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-              Menu
-            </p>
-            <nav className="space-y-1">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  dashboard
-                </span>
-                Dashboard
-              </Link>
-              <Link
-                href="/dashboard/workspaces"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  group_work
-                </span>
-                Workspaces
-              </Link>
-              <Link
-                href="/dashboard/links"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  link
-                </span>
-                Links
-              </Link>
-              <Link
-                href="/dashboard/campaigns"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  campaign
-                </span>
-                Campaigns
-              </Link>
-              <Link
-                href="/subscribers"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  group
-                </span>
-                Audience
-              </Link>
-              <Link
-                href="/emails"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  mark_email_read
-                </span>
-                Email Campaigns
-              </Link>
-              <Link
-                href="/emails/settings"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  settings
-                </span>
-                Email Settings
-              </Link>
-              <Link
-                href="/dashboard/api"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  api
-                </span>
-                API & Webhooks
-              </Link>
-              <Link
-                href="/dashboard/billing"
-                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px]">
-                  payments
-                </span>
-                Billing
-              </Link>
-            </nav>
-          </div>
+          <SidebarNav />
         </div>
 
         <UserProfile />

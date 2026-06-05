@@ -18,6 +18,8 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslation } from '@/i18n/I18nProvider';
+import { format } from '@/i18n/translations';
 
 interface Stats {
   campaign: {
@@ -82,8 +84,9 @@ function MetricCard({
 }
 
 function DonutChart({ data, colors }: { data: { name: string; count: number }[]; colors: string[] }) {
+  const t = useTranslation();
   const total = data.reduce((s, d) => s + d.count, 0);
-  if (total === 0) return <p className="text-gray-400 text-sm text-center py-8">No data yet</p>;
+  if (total === 0) return <p className="text-gray-400 text-sm text-center py-8">{t.stats.noDataYet}</p>;
 
   let cumulative = 0;
   const radius = 60;
@@ -135,6 +138,7 @@ function DonutChart({ data, colors }: { data: { name: string; count: number }[];
 }
 
 export default function CampaignStatsPage() {
+  const t = useTranslation();
   const params = useParams();
   const searchParams = useSearchParams();
   const campaignId = params.id as string;
@@ -152,7 +156,7 @@ export default function CampaignStatsPage() {
         const data = await fetchApi(`/email-campaigns/${campaignId}/stats?workspaceId=${workspaceId}`);
         setStats(data.data || data);
       } catch (err: any) {
-        setError(err.message || 'Failed to load stats');
+        setError(err.message || t.stats.loadError);
       } finally {
         setLoading(false);
       }
@@ -176,8 +180,8 @@ export default function CampaignStatsPage() {
   if (error || !stats) {
     return (
       <div className="max-w-6xl mx-auto text-center py-16">
-        <p className="text-red-500 font-semibold">{error || 'No data found'}</p>
-        <Link href="/emails" className="text-indigo-600 text-sm mt-4 inline-block">← Back to campaigns</Link>
+        <p className="text-red-500 font-semibold">{error || t.stats.noDataFound}</p>
+        <Link href="/emails" className="text-indigo-600 text-sm mt-4 inline-block">← {t.stats.backToCampaigns}</Link>
       </div>
     );
   }
@@ -190,7 +194,7 @@ export default function CampaignStatsPage() {
       <div>
         <Link href="/emails" className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-indigo-600 mb-3 transition-colors">
           <ArrowLeft className="w-4 h-4" />
-          Back to campaigns
+          {t.stats.backToCampaigns}
         </Link>
         <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
           <BarChart2 className="w-7 h-7 text-indigo-600" />
@@ -198,7 +202,7 @@ export default function CampaignStatsPage() {
         </h1>
         {stats.campaign.sentAt && (
           <p className="text-gray-400 text-sm mt-1">
-            Sent {new Date(stats.campaign.sentAt).toLocaleString()}
+            {t.stats.sentOn} {new Date(stats.campaign.sentAt).toLocaleString()}
           </p>
         )}
       </div>
@@ -206,30 +210,30 @@ export default function CampaignStatsPage() {
       {/* Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          label="Open Rate"
+          label={t.stats.openRate}
           value={`${stats.rates.openRate}%`}
-          sub={`${stats.summary.uniqueOpens} unique opens`}
+          sub={format(t.stats.uniqueOpens, { n: stats.summary.uniqueOpens })}
           icon={<Mail className="w-5 h-5 text-indigo-600" />}
           color="bg-indigo-50"
         />
         <MetricCard
-          label="Click Rate"
+          label={t.stats.clickRate}
           value={`${stats.rates.clickRate}%`}
-          sub={`${stats.summary.uniqueClicks} unique clicks`}
+          sub={format(t.stats.uniqueClicks, { n: stats.summary.uniqueClicks })}
           icon={<MousePointer2 className="w-5 h-5 text-emerald-600" />}
           color="bg-emerald-50"
         />
         <MetricCard
-          label="Bounce Rate"
+          label={t.stats.bounceRate}
           value={`${stats.rates.bounceRate}%`}
-          sub={`${stats.summary.bounced} bounced`}
+          sub={format(t.stats.bounced, { n: stats.summary.bounced })}
           icon={<AlertTriangle className="w-5 h-5 text-amber-600" />}
           color="bg-amber-50"
         />
         <MetricCard
-          label="Unsubscribe Rate"
+          label={t.stats.unsubscribeRate}
           value={`${stats.rates.unsubscribeRate}%`}
-          sub={`${stats.summary.unsubscribed} unsubscribed`}
+          sub={format(t.stats.unsubscribed, { n: stats.summary.unsubscribed })}
           icon={<UserMinus className="w-5 h-5 text-rose-600" />}
           color="bg-rose-50"
         />
@@ -238,12 +242,12 @@ export default function CampaignStatsPage() {
       {/* Summary Row */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 grid grid-cols-3 md:grid-cols-6 gap-4 text-center">
         {[
-          { label: 'Total Sent', value: stats.summary.total },
-          { label: 'Delivered', value: stats.summary.delivered },
-          { label: 'Opened', value: stats.summary.uniqueOpens },
-          { label: 'Clicked', value: stats.summary.uniqueClicks },
-          { label: 'Bounced', value: stats.summary.bounced },
-          { label: 'Spam', value: stats.summary.spam },
+          { label: t.stats.totalSent, value: stats.summary.total },
+          { label: t.stats.delivered, value: stats.summary.delivered },
+          { label: t.stats.opened, value: stats.summary.uniqueOpens },
+          { label: t.stats.clicked, value: stats.summary.uniqueClicks },
+          { label: t.stats.bouncedLabel, value: stats.summary.bounced },
+          { label: t.stats.spam, value: stats.summary.spam },
         ].map(({ label, value }) => (
           <div key={label}>
             <p className="text-2xl font-extrabold text-gray-900">{value}</p>
@@ -257,12 +261,12 @@ export default function CampaignStatsPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-indigo-600" />
-            Device Breakdown
+            {t.stats.deviceBreakdown}
           </h3>
           {stats.deviceBreakdown.length > 0 ? (
             <DonutChart data={stats.deviceBreakdown} colors={deviceColors} />
           ) : (
-            <p className="text-gray-400 text-sm text-center py-8">No opens recorded yet</p>
+            <p className="text-gray-400 text-sm text-center py-8">{t.stats.noOpensRecorded}</p>
           )}
         </div>
 
@@ -270,12 +274,12 @@ export default function CampaignStatsPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Globe className="w-5 h-5 text-purple-600" />
-            Operating Systems
+            {t.stats.operatingSystems}
           </h3>
           {stats.osBreakdown.length > 0 ? (
             <DonutChart data={stats.osBreakdown} colors={['#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe']} />
           ) : (
-            <p className="text-gray-400 text-sm text-center py-8">No data yet</p>
+            <p className="text-gray-400 text-sm text-center py-8">{t.stats.noDataYet}</p>
           )}
         </div>
       </div>
@@ -285,10 +289,10 @@ export default function CampaignStatsPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
             <BarChart2 className="w-5 h-5 text-indigo-600" />
-            Activity Timeline
+            {t.stats.activityTimeline}
           </h3>
           {stats.timeline.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">No activity recorded yet</p>
+            <p className="text-gray-400 text-sm text-center py-8">{t.stats.noActivityRecorded}</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {stats.timeline.map((day) => {
@@ -298,7 +302,7 @@ export default function CampaignStatsPage() {
                     <span className="text-gray-400 text-xs w-20 shrink-0">{day.date}</span>
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-indigo-500 w-12">Opens</span>
+                        <span className="text-xs text-indigo-500 w-12">{t.stats.opens}</span>
                         <div className="flex-1 bg-indigo-50 rounded-full h-2">
                           <div
                             className="bg-indigo-500 h-2 rounded-full transition-all"
@@ -308,7 +312,7 @@ export default function CampaignStatsPage() {
                         <span className="text-xs text-gray-500 w-6 text-right">{day.opens}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-emerald-500 w-12">Clicks</span>
+                        <span className="text-xs text-emerald-500 w-12">{t.stats.clicks}</span>
                         <div className="flex-1 bg-emerald-50 rounded-full h-2">
                           <div
                             className="bg-emerald-500 h-2 rounded-full transition-all"
@@ -329,10 +333,10 @@ export default function CampaignStatsPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Link2 className="w-5 h-5 text-indigo-600" />
-            Top Clicked Links
+            {t.stats.topClickedLinks}
           </h3>
           {stats.topLinks.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">No clicks recorded yet</p>
+            <p className="text-gray-400 text-sm text-center py-8">{t.stats.noClicksRecorded}</p>
           ) : (
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {stats.topLinks.map((link, i) => (

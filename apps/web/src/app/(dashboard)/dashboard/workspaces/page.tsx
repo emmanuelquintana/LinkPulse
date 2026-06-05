@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
 import Link from "next/link";
 import EditWorkspaceModal from "@/components/EditWorkspaceModal";
+import { useTranslation } from "@/i18n/I18nProvider";
+import { sileo } from "sileo";
 
 interface WorkspaceMember {
   id: string;
@@ -23,6 +25,7 @@ interface Workspace {
 }
 
 export default function WorkspacesPage() {
+  const t = useTranslation();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -72,7 +75,7 @@ export default function WorkspacesPage() {
       setShowCreateModal(false);
       loadWorkspaces();
     } catch (err: any) {
-      setError(err.message || "Error creating workspace");
+      setError(err.message || t.workspaces.createError);
     } finally {
       setCreating(false);
     }
@@ -86,9 +89,7 @@ export default function WorkspacesPage() {
 
   const handleDelete = async (wsId: string) => {
     if (
-      !confirm(
-        "Are you sure you want to delete this workspace? All associated links and data will be permanently removed.",
-      )
+      !confirm(t.workspaces.confirmDelete)
     )
       return;
 
@@ -97,7 +98,7 @@ export default function WorkspacesPage() {
       loadWorkspaces();
     } catch (err: any) {
       console.error("Failed to delete workspace", err);
-      alert(err.message || "Error deleting workspace");
+      sileo.error({ title: t.workspaces.deleteError, description: err.message });
     }
     setOpenMenuId(null);
   };
@@ -108,10 +109,10 @@ export default function WorkspacesPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-              Workspaces
+              {t.workspaces.title}
             </h2>
             <p className="text-gray-500 font-medium mt-1">
-              Manage your teams and collaboration environments.
+              {t.workspaces.subtitle}
             </p>
           </div>
           <button
@@ -119,7 +120,7 @@ export default function WorkspacesPage() {
             className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 active:scale-95"
           >
             <span className="material-symbols-outlined text-[20px]">add</span>
-            New Workspace
+            {t.workspaces.newWorkspace}
           </button>
         </div>
 
@@ -170,7 +171,7 @@ export default function WorkspacesPage() {
                             <span className="material-symbols-outlined text-[18px]">
                               edit
                             </span>
-                            Edit Details
+                            {t.workspaces.editDetails}
                           </button>
                           <div className="h-px bg-gray-50 my-1 mx-2" />
                           <button
@@ -180,7 +181,7 @@ export default function WorkspacesPage() {
                             <span className="material-symbols-outlined text-[18px]">
                               delete
                             </span>
-                            Delete
+                            {t.common.delete}
                           </button>
                         </div>
                       </>
@@ -192,13 +193,13 @@ export default function WorkspacesPage() {
                   {ws.name}
                 </h3>
                 <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-[0.1em]">
-                  Free Workspace
+                  {t.workspaces.freeWorkspace}
                 </p>
 
                 <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-gray-50">
                   <div className="flex flex-col">
                     <span className="text-[0.65rem] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                      Members
+                      {t.workspaces.members}
                     </span>
                     <span className="text-2xl font-black text-gray-900">
                       {ws._count?.members || 1}
@@ -206,7 +207,7 @@ export default function WorkspacesPage() {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[0.65rem] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                      Links
+                      {t.workspaces.linksWord}
                     </span>
                     <span className="text-2xl font-black text-gray-900">
                       {ws._count?.links || 0}
@@ -219,7 +220,7 @@ export default function WorkspacesPage() {
                     href={`/dashboard/links?workspace=${ws.id}`}
                     className="text-sm font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 group/btn bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100/50 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all"
                   >
-                    View Links
+                    {t.workspaces.viewLinks}
                     <span className="material-symbols-outlined text-[18px] group-hover/btn:translate-x-0.5 transition-transform">
                       arrow_forward
                     </span>
@@ -246,17 +247,16 @@ export default function WorkspacesPage() {
                   </span>
                 </div>
                 <h3 className="text-2xl font-black text-gray-900">
-                  No workspaces yet
+                  {t.workspaces.noWorkspacesTitle}
                 </h3>
                 <p className="text-gray-500 max-w-xs mt-2 font-medium">
-                  Workspaces allow you to organize your links and collaborate
-                  with your team.
+                  {t.workspaces.noWorkspacesSubtitle}
                 </p>
                 <button
                   onClick={() => setShowCreateModal(true)}
                   className="mt-8 bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95"
                 >
-                  Create your first workspace
+                  {t.workspaces.createFirst}
                 </button>
               </div>
             )}
@@ -269,7 +269,7 @@ export default function WorkspacesPage() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden ring-1 ring-gray-200 animate-in zoom-in-95 duration-200">
               <div className="flex justify-between items-center p-6 border-b border-gray-100">
                 <h3 className="text-xl font-black text-gray-900 tracking-tight">
-                  Create Workspace
+                  {t.workspaces.createWorkspace}
                 </h3>
                 <button
                   onClick={() => setShowCreateModal(false)}
@@ -293,12 +293,12 @@ export default function WorkspacesPage() {
 
                 <div className="space-y-2">
                   <label className="text-[0.7rem] font-black text-gray-400 uppercase tracking-widest block px-1">
-                    Workspace Name
+                    {t.workspaces.workspaceName}
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Marketing Team, Personal Projects"
+                    placeholder={t.workspaces.workspaceNamePlaceholder}
                     value={newWorkspaceName}
                     onChange={(e) => setNewWorkspaceName(e.target.value)}
                     className="w-full h-12 px-5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-gray-900"
@@ -312,14 +312,14 @@ export default function WorkspacesPage() {
                     onClick={() => setShowCreateModal(false)}
                     className="flex-1 h-12 px-4 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all"
                   >
-                    Cancel
+                    {t.common.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={creating || !newWorkspaceName.trim()}
                     className="flex-1 h-12 px-4 bg-indigo-600 border border-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 hover:border-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
                   >
-                    {creating ? "Creating..." : "Create Workspace"}
+                    {creating ? t.common.creating : t.workspaces.createWorkspace}
                   </button>
                 </div>
               </form>

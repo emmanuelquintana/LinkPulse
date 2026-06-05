@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 interface CreateCampaignModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export default function CreateCampaignModal({
   onSuccess,
   workspaceId,
 }: CreateCampaignModalProps) {
+  const t = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,7 +45,7 @@ export default function CreateCampaignModal({
       setName("");
       setDescription("");
     } catch (err: any) {
-      setError(err.message || "Failed to create campaign");
+      setError(err.message || t.modals.campaignCreateError);
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,7 @@ export default function CreateCampaignModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
           <h3 className="text-xl font-bold text-gray-900">
-            Create New Campaign
+            {t.modals.createCampaignTitle}
           </h3>
           <button
             onClick={onClose}
@@ -77,7 +79,7 @@ export default function CreateCampaignModal({
               htmlFor="name"
               className="text-sm font-semibold text-gray-700"
             >
-              Campaign Name
+              {t.modals.campaignName}
             </label>
             <input
               id="name"
@@ -85,7 +87,7 @@ export default function CreateCampaignModal({
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Summer Sale 2024"
+              placeholder={t.modals.campaignNamePlaceholder}
               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-gray-400"
             />
           </div>
@@ -95,14 +97,14 @@ export default function CreateCampaignModal({
               htmlFor="description"
               className="text-sm font-semibold text-gray-700"
             >
-              Description (Optional)
+              {t.modals.descriptionOptional}
             </label>
             <textarea
               id="description"
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What is this campaign about?"
+              placeholder={t.modals.descriptionPlaceholder}
               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-gray-400 resize-none"
             />
           </div>
@@ -113,7 +115,7 @@ export default function CreateCampaignModal({
               onClick={onClose}
               className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
             >
-              Cancel
+              {t.common.cancel}
             </button>
             <button
               type="submit"
@@ -123,7 +125,7 @@ export default function CreateCampaignModal({
               {loading ? (
                 <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                "Create Campaign"
+                t.modals.createCampaign
               )}
             </button>
           </div>

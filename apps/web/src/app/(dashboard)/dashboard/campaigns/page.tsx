@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
 import CreateCampaignModal from '@/components/CreateCampaignModal';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 interface Campaign {
   id: string;
@@ -19,6 +20,7 @@ interface Workspace {
 }
 
 export default function CampaignsPage() {
+  const t = useTranslation();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState<string>('');
@@ -65,8 +67,8 @@ export default function CampaignsPage() {
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Campaigns</h1>
-          <p className="text-gray-500 font-medium">Organize and group your links by marketing initiatives.</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">{t.campaigns.title}</h1>
+          <p className="text-gray-500 font-medium">{t.campaigns.subtitle}</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
           <select 
@@ -83,7 +85,7 @@ export default function CampaignsPage() {
             className="flex-1 md:flex-none bg-indigo-600 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 flex items-center justify-center gap-2 active:scale-95"
           >
             <span className="material-symbols-outlined text-lg">add</span>
-            New Campaign
+            {t.campaigns.newCampaign}
           </button>
         </div>
       </div>
@@ -109,7 +111,7 @@ export default function CampaignsPage() {
               </div>
 
               <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{campaign.name}</h3>
-              <p className="text-gray-500 text-sm line-clamp-2 min-h-[2.5rem] font-medium leading-relaxed">{campaign.description || 'No description provided.'}</p>
+              <p className="text-gray-500 text-sm line-clamp-2 min-h-[2.5rem] font-medium leading-relaxed">{campaign.description || t.campaigns.noDescription}</p>
               
               <div className="mt-6 flex items-center justify-between text-xs font-bold uppercase tracking-widest text-gray-400 border-t border-gray-50 pt-4">
                 <span className="px-2 py-1 rounded bg-green-50 text-green-600">{campaign.status}</span>
@@ -123,13 +125,13 @@ export default function CampaignsPage() {
           <div className="h-20 w-20 rounded-full bg-indigo-50 text-indigo-200 flex items-center justify-center mb-6">
             <span className="material-symbols-outlined text-5xl">campaign</span>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">No campaigns found</h2>
-          <p className="text-gray-500 max-w-sm mt-3 font-medium">Create your first campaign to group your links and measure their performance together.</p>
-          <button 
+          <h2 className="text-2xl font-bold text-gray-900">{t.campaigns.noCampaignsTitle}</h2>
+          <p className="text-gray-500 max-w-sm mt-3 font-medium">{t.campaigns.noCampaignsSubtitle}</p>
+          <button
             onClick={() => setShowCreateModal(true)}
             className="mt-8 text-indigo-600 font-bold hover:text-indigo-800 flex items-center gap-2 group"
           >
-            Get started by creating a campaign
+            {t.campaigns.getStarted}
             <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </button>
         </div>

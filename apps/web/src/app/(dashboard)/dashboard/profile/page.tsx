@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 export default function ProfilePage() {
+  const t = useTranslation();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,7 +46,7 @@ export default function ProfilePage() {
         method: 'PATCH',
         body: JSON.stringify(formData)
       });
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      setMessage({ type: 'success', text: t.profile.updateSuccess });
       // Update local profile state
       const updatedProfile = { ...profile, ...formData };
       setProfile(updatedProfile);
@@ -52,7 +54,7 @@ export default function ProfilePage() {
       // Dispatch custom event for sidebar sync
       window.dispatchEvent(new CustomEvent('profile-updated', { detail: updatedProfile }));
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'Error updating profile' });
+      setMessage({ type: 'error', text: err.message || t.profile.updateError });
     } finally {
       setSaving(false);
     }
@@ -63,7 +65,7 @@ export default function ProfilePage() {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'File size must be less than 2MB' });
+      setMessage({ type: 'error', text: t.profile.fileTooLarge });
       return;
     }
 
@@ -101,8 +103,8 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto font-sans pb-20">
       <div className="mb-8">
-        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Account Settings</h2>
-        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-1">Manage your identity and security</p>
+        <h2 className="text-3xl font-black text-gray-900 tracking-tight">{t.profile.accountSettings}</h2>
+        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-1">{t.profile.manageIdentity}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -114,28 +116,28 @@ export default function ProfilePage() {
               className={`w-full flex items-center gap-3 px-5 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeSection === 'profile' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
             >
               <span className="material-symbols-outlined text-[20px]">person</span>
-              General Profile
+              {t.profile.generalProfile}
             </button>
             <button 
               onClick={() => setActiveSection('security')}
               className={`w-full flex items-center gap-3 px-5 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeSection === 'security' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
             >
               <span className="material-symbols-outlined text-[20px]">lock</span>
-              Security
+              {t.profile.security}
             </button>
             <button 
               onClick={() => setActiveSection('notifications')}
               className={`w-full flex items-center gap-3 px-5 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeSection === 'notifications' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
             >
               <span className="material-symbols-outlined text-[20px]">notifications</span>
-              Notifications
+              {t.profile.notifications}
             </button>
             <button 
               onClick={() => setActiveSection('billing')}
               className={`w-full flex items-center gap-3 px-5 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${activeSection === 'billing' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
             >
               <span className="material-symbols-outlined text-[20px]">credit_card</span>
-              Billing
+              {t.profile.billing}
             </button>
           </nav>
         </div>
@@ -168,13 +170,13 @@ export default function ProfilePage() {
                    </button>
                  </div>
                  <div>
-                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Profile Picture</h3>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">PNG or JPG, max 2MB</p>
-                    <button 
+                    <h3 className="text-xl font-black text-gray-900 tracking-tight">{t.profile.profilePicture}</h3>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">{t.profile.pictureHint}</p>
+                    <button
                       onClick={triggerFileInput}
                       className="text-sm font-black text-indigo-600 hover:text-indigo-700 mt-2 flex items-center gap-1 group"
                     >
-                      Update photo
+                      {t.profile.updatePhoto}
                       <span className="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">arrow_right_alt</span>
                     </button>
                  </div>
@@ -190,22 +192,22 @@ export default function ProfilePage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest block px-1">First Name</label>
-                    <input 
-                      type="text" 
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest block px-1">{t.profile.firstName}</label>
+                    <input
+                      type="text"
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      placeholder="e.g. John"
+                      placeholder={t.profile.firstNamePlaceholder}
                       className="w-full h-14 px-6 bg-gray-50 border border-gray-100 rounded-[1.2rem] text-sm font-bold text-gray-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all placeholder:text-gray-300"
                     />
                   </div>
                   <div className="space-y-3">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest block px-1">Last Name</label>
-                    <input 
-                      type="text" 
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest block px-1">{t.profile.lastName}</label>
+                    <input
+                      type="text"
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      placeholder="e.g. Doe"
+                      placeholder={t.profile.lastNamePlaceholder}
                       className="w-full h-14 px-6 bg-gray-50 border border-gray-100 rounded-[1.2rem] text-sm font-bold text-gray-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all placeholder:text-gray-300"
                     />
                   </div>
@@ -213,8 +215,8 @@ export default function ProfilePage() {
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between px-1">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">Email Address</label>
-                    <span className="text-[0.65rem] font-black text-indigo-500 uppercase bg-indigo-50 px-2 py-0.5 rounded-lg">Verified</span>
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest block">{t.profile.emailAddress}</label>
+                    <span className="text-[0.65rem] font-black text-indigo-500 uppercase bg-indigo-50 px-2 py-0.5 rounded-lg">{t.profile.verified}</span>
                   </div>
                   <div className="relative">
                     <input 
@@ -225,7 +227,7 @@ export default function ProfilePage() {
                     />
                     <span className="absolute right-5 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-300">lock</span>
                   </div>
-                  <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest px-1">To change your email, please <span className="text-indigo-600 hover:underline cursor-pointer">contact support</span>.</p>
+                  <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest px-1">{t.profile.changeEmailPrefix} <span className="text-indigo-600 hover:underline cursor-pointer">{t.profile.contactSupport}</span>.</p>
                 </div>
 
                 <div className="pt-8 border-t border-gray-50 mt-10 flex justify-end">
@@ -237,12 +239,12 @@ export default function ProfilePage() {
                     {saving ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Saving...
+                        {t.common.saving}
                       </>
                     ) : (
                       <>
                         <span className="material-symbols-outlined text-[20px]">save</span>
-                        Save Settings
+                        {t.profile.saveSettings}
                       </>
                     )}
                   </button>
@@ -254,13 +256,20 @@ export default function ProfilePage() {
                <div className="h-20 w-20 rounded-[2rem] bg-gray-50 flex items-center justify-center mb-6">
                  <span className="material-symbols-outlined text-4xl text-gray-200">construction</span>
                </div>
-               <h3 className="text-xl font-black text-gray-900 tracking-tight capitalize">{activeSection} is coming soon</h3>
-               <p className="text-sm font-bold text-gray-400 max-w-[300px] mt-2">We're working hard to bring you more control over your account. Stay tuned!</p>
-               <button 
+               <h3 className="text-xl font-black text-gray-900 tracking-tight">
+                 {(activeSection === 'security'
+                   ? t.profile.security
+                   : activeSection === 'notifications'
+                     ? t.profile.notifications
+                     : t.profile.billing)}{' '}
+                 {t.profile.comingSoon}
+               </h3>
+               <p className="text-sm font-bold text-gray-400 max-w-[300px] mt-2">{t.profile.comingSoonText}</p>
+               <button
                 onClick={() => setActiveSection('profile')}
                 className="mt-8 text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline"
                >
-                 Go back to general profile
+                 {t.profile.goBackProfile}
                </button>
             </div>
           )}
@@ -269,15 +278,15 @@ export default function ProfilePage() {
             <div className="bg-rose-50 rounded-[2rem] border border-rose-100 p-10 mt-12 group hover:border-rose-200 transition-all">
                <div className="flex items-start justify-between">
                  <div>
-                   <h3 className="text-xl font-black text-rose-900 tracking-tight">Danger Zone</h3>
-                   <p className="text-sm text-rose-700 mt-2 font-bold max-w-sm">Permanently delete your account and all associated data. This action is irreversible.</p>
+                   <h3 className="text-xl font-black text-rose-900 tracking-tight">{t.profile.dangerZone}</h3>
+                   <p className="text-sm text-rose-700 mt-2 font-bold max-w-sm">{t.profile.dangerText}</p>
                  </div>
                  <div className="h-12 w-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center">
                     <span className="material-symbols-outlined">warning</span>
                  </div>
                </div>
                <button className="mt-8 h-12 px-6 bg-rose-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-rose-200">
-                  Delete Account
+                  {t.profile.deleteAccount}
                </button>
             </div>
           )}

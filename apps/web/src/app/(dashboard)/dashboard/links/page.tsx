@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { fetchApi } from "@/lib/api";
 import Link from "next/link";
 import EditLinkModal from "@/components/EditLinkModal";
+import { useTranslation } from "@/i18n/I18nProvider";
+import { format } from "@/i18n/translations";
 
 interface LinkData {
   id: string;
@@ -19,6 +21,7 @@ interface LinkData {
 }
 
 export default function LinksPage() {
+  const t = useTranslation();
   const [links, setLinks] = useState<LinkData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,9 +74,7 @@ export default function LinksPage() {
 
   const handleArchive = async (linkId: string) => {
     if (
-      !confirm(
-        "Are you sure you want to archive this link? It will no longer be active.",
-      )
+      !confirm(t.linksPage.confirmArchive)
     )
       return;
 
@@ -101,10 +102,10 @@ export default function LinksPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-              Your Links
+              {t.linksPage.title}
             </h2>
             <p className="text-gray-500 font-medium mt-1">
-              Manage, track and optimize your short links.
+              {t.linksPage.subtitle}
             </p>
           </div>
           <Link
@@ -112,7 +113,7 @@ export default function LinksPage() {
             className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2 active:scale-95"
           >
             <span className="material-symbols-outlined text-[20px]">add</span>
-            Create Link
+            {t.linksPage.createLink}
           </Link>
         </div>
 
@@ -132,13 +133,13 @@ export default function LinksPage() {
                 <thead className="text-[0.7rem] text-gray-400 uppercase font-black tracking-[0.1em] border-b border-gray-50 bg-gray-50/30">
                   <tr>
                     <th className="px-8 py-5 w-1/3 first:rounded-tl-3xl">
-                      Short Link
+                      {t.linksPage.shortLink}
                     </th>
-                    <th className="px-8 py-5 w-1/3 text-center">Destination</th>
-                    <th className="px-8 py-5 text-center">Clicks</th>
-                    <th className="px-8 py-5 text-center">Created</th>
+                    <th className="px-8 py-5 w-1/3 text-center">{t.linksPage.destination}</th>
+                    <th className="px-8 py-5 text-center">{t.linksPage.clicks}</th>
+                    <th className="px-8 py-5 text-center">{t.linksPage.created}</th>
                     <th className="px-8 py-5 text-right whitespace-nowrap last:rounded-tr-3xl">
-                      Actions
+                      {t.common.actions}
                     </th>
                   </tr>
                 </thead>
@@ -162,7 +163,7 @@ export default function LinksPage() {
                                 {link.customAlias || link.shortCode}
                               </p>
                               <p className="text-[0.7rem] text-gray-400 font-bold uppercase tracking-wider">
-                                {link.title || "Untitled Link"}
+                                {link.title || t.linksPage.untitledLink}
                               </p>
                             </div>
                           </div>
@@ -215,7 +216,7 @@ export default function LinksPage() {
                                   <span className="material-symbols-outlined text-[18px]">
                                     content_copy
                                   </span>
-                                  Copy Link
+                                  {t.linksPage.copyLink}
                                 </button>
                                 <button
                                   onClick={() => handleEdit(link)}
@@ -224,7 +225,7 @@ export default function LinksPage() {
                                   <span className="material-symbols-outlined text-[18px]">
                                     edit
                                   </span>
-                                  Edit Link
+                                  {t.linksPage.editLink}
                                 </button>
                                 <div className="h-px bg-gray-50 my-1 mx-2" />
                                 <button
@@ -234,7 +235,7 @@ export default function LinksPage() {
                                   <span className="material-symbols-outlined text-[18px]">
                                     archive
                                   </span>
-                                  Archive
+                                  {t.linksPage.archive}
                                 </button>
                               </div>
                             </>
@@ -256,17 +257,17 @@ export default function LinksPage() {
                           </div>
                           <div>
                             <p className="text-xl font-black text-gray-900">
-                              No active links found
+                              {t.linksPage.noActiveLinks}
                             </p>
                             <p className="text-gray-500 font-medium mt-1">
-                              Ready to create your first short link?
+                              {t.linksPage.readyFirstLink}
                             </p>
                           </div>
                           <Link
                             href="/dashboard/links/create"
                             className="mt-2 text-indigo-600 font-bold hover:underline flex items-center gap-1"
                           >
-                            Create link now{" "}
+                            {t.linksPage.createLinkNow}{" "}
                             <span className="material-symbols-outlined text-sm">
                               arrow_forward
                             </span>
@@ -283,16 +284,16 @@ export default function LinksPage() {
             {totalPages > 1 && (
               <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                  Showing{" "}
+                  {t.linksPage.showing}{" "}
                   <span className="text-gray-900">
                     {(currentPage - 1) * limit + 1}
                   </span>{" "}
-                  to{" "}
+                  {t.linksPage.to}{" "}
                   <span className="text-gray-900">
                     {Math.min(currentPage * limit, totalElements)}
                   </span>{" "}
-                  of <span className="text-gray-900">{totalElements}</span>{" "}
-                  links
+                  {t.linksPage.of} <span className="text-gray-900">{totalElements}</span>{" "}
+                  {t.linksPage.linksWord}
                 </p>
                 <div className="flex items-center gap-2">
                   <button

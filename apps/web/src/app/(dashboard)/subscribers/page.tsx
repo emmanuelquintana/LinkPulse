@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '@/lib/api';
 import { Users, Upload, Plus, Tag, Trash2, ChevronLeft, ChevronRight, X, Download, FileSpreadsheet } from 'lucide-react';
+import { useTranslation } from '@/i18n/I18nProvider';
+import { format } from '@/i18n/translations';
 
 interface Subscriber {
   id: string;
@@ -26,6 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function SubscribersPage() {
+  const t = useTranslation();
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState('');
@@ -92,7 +95,7 @@ export default function SubscribersPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Are you sure you want to delete this subscriber?')) return;
+    if (!confirm(t.subscribers.confirmDelete)) return;
     try {
       await fetchApi(`/subscribers/${id}?workspaceId=${selectedWorkspace}`, { method: 'DELETE' });
       loadSubscribers();
@@ -131,9 +134,9 @@ export default function SubscribersPage() {
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
             <Users className="w-8 h-8 text-indigo-600" />
-            Audience
+            {t.subscribers.title}
           </h1>
-          <p className="text-gray-500 font-medium mt-1">Manage your email subscribers.</p>
+          <p className="text-gray-500 font-medium mt-1">{t.subscribers.subtitle}</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <select
@@ -149,15 +152,15 @@ export default function SubscribersPage() {
           <button
             onClick={downloadTemplate}
             className="flex items-center gap-2 bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all shadow-sm"
-            title="Download CSV template"
+            title={t.subscribers.downloadTemplateTitle}
           >
             <FileSpreadsheet className="w-4 h-4 text-green-600" />
-            Plantilla CSV
+            {t.subscribers.csvTemplate}
           </button>
 
           <label className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all shadow-sm cursor-pointer">
             <Upload className="w-4 h-4" />
-            {csvUploading ? 'Importando…' : 'Importar CSV'}
+            {csvUploading ? t.subscribers.importing : t.subscribers.importCsv}
             <input
               ref={fileInputRef}
               type="file"
@@ -172,7 +175,7 @@ export default function SubscribersPage() {
             className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            Añadir
+            {t.subscribers.add}
           </button>
         </div>
       </div>
@@ -181,14 +184,14 @@ export default function SubscribersPage() {
       <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-start gap-3 text-sm text-blue-700">
         <Download className="w-4 h-4 mt-0.5 shrink-0" />
         <div>
-          <span className="font-semibold">Formato CSV esperado:</span>{' '}
-          columnas <code className="bg-blue-100 px-1 rounded">email</code>,{' '}
+          <span className="font-semibold">{t.subscribers.csvFormatLabel}</span>{' '}
+          {t.subscribers.csvFormatColumns} <code className="bg-blue-100 px-1 rounded">email</code>,{' '}
           <code className="bg-blue-100 px-1 rounded">firstName</code>,{' '}
           <code className="bg-blue-100 px-1 rounded">lastName</code>,{' '}
           <code className="bg-blue-100 px-1 rounded">tags</code>{' '}
-          (tags separadas por <code className="bg-blue-100 px-1 rounded">|</code>).{' '}
+          {t.subscribers.csvFormatTagsHint} <code className="bg-blue-100 px-1 rounded">|</code>).{' '}
           <button onClick={downloadTemplate} className="underline font-semibold hover:text-blue-900">
-            Descarga la plantilla aquí.
+            {t.subscribers.downloadTemplateHere}
           </button>
         </div>
       </div>
@@ -197,7 +200,7 @@ export default function SubscribersPage() {
       {csvResult && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center justify-between text-sm">
           <span className="text-green-700 font-semibold">
-            Import complete: <strong>{csvResult.imported}</strong> imported, <strong>{csvResult.skipped}</strong> skipped.
+            {t.subscribers.importComplete} <strong>{csvResult.imported}</strong> {t.subscribers.imported}, <strong>{csvResult.skipped}</strong> {t.subscribers.skipped}.
           </span>
           <button onClick={() => setCsvResult(null)}><X className="w-4 h-4 text-green-600" /></button>
         </div>
@@ -209,11 +212,11 @@ export default function SubscribersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Email</th>
-                <th className="text-left px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Name</th>
-                <th className="text-left px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Tags</th>
-                <th className="text-left px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Status</th>
-                <th className="text-left px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">Added</th>
+                <th className="text-left px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">{t.subscribers.email}</th>
+                <th className="text-left px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">{t.subscribers.name}</th>
+                <th className="text-left px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">{t.subscribers.tags}</th>
+                <th className="text-left px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">{t.common.status}</th>
+                <th className="text-left px-6 py-4 font-semibold text-gray-500 uppercase tracking-wider text-xs">{t.subscribers.added}</th>
                 <th className="px-6 py-4" />
               </tr>
             </thead>
@@ -232,8 +235,8 @@ export default function SubscribersPage() {
                 <tr>
                   <td colSpan={6} className="px-6 py-16 text-center text-gray-400">
                     <Users className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-                    <p className="font-semibold">No subscribers yet</p>
-                    <p className="text-xs mt-1">Import a CSV or add subscribers manually.</p>
+                    <p className="font-semibold">{t.subscribers.noSubscribersTitle}</p>
+                    <p className="text-xs mt-1">{t.subscribers.noSubscribersSubtitle}</p>
                   </td>
                 </tr>
               ) : (
@@ -280,7 +283,7 @@ export default function SubscribersPage() {
         {totalPages > 1 && (
           <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm">
             <span className="text-gray-400">
-              {totalElements} subscribers · Page {page} of {totalPages}
+              {totalElements} {t.subscribers.subscribersWord} · {t.subscribers.page} {page} {t.subscribers.of} {totalPages}
             </span>
             <div className="flex gap-2">
               <button
@@ -323,6 +326,7 @@ function AddSubscriberModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const t = useTranslation();
   const [form, setForm] = useState({ email: '', firstName: '', lastName: '', tags: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -339,7 +343,7 @@ function AddSubscriberModal({
       });
       onSuccess();
     } catch (err: any) {
-      setError(err.message || 'Failed to create subscriber');
+      setError(err.message || t.subscribers.createError);
     } finally {
       setSaving(false);
     }
@@ -349,7 +353,7 @@ function AddSubscriberModal({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-gray-900">Add Subscriber</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t.subscribers.addSubscriber}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
             <X className="w-5 h-5" />
           </button>
@@ -357,7 +361,7 @@ function AddSubscriberModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Email *</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">{t.subscribers.email} *</label>
             <input
               type="email"
               required
@@ -369,7 +373,7 @@ function AddSubscriberModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">First Name</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t.subscribers.firstName}</label>
               <input
                 value={form.firstName}
                 onChange={(e) => setForm({ ...form, firstName: e.target.value })}
@@ -378,7 +382,7 @@ function AddSubscriberModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Last Name</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t.subscribers.lastName}</label>
               <input
                 value={form.lastName}
                 onChange={(e) => setForm({ ...form, lastName: e.target.value })}
@@ -388,7 +392,7 @@ function AddSubscriberModal({
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Tags (comma separated)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">{t.subscribers.tagsCommaSeparated}</label>
             <input
               value={form.tags}
               onChange={(e) => setForm({ ...form, tags: e.target.value })}
@@ -401,10 +405,10 @@ function AddSubscriberModal({
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">
-              Cancel
+              {t.common.cancel}
             </button>
             <button type="submit" disabled={saving} className="flex-1 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50">
-              {saving ? 'Saving…' : 'Add Subscriber'}
+              {saving ? t.common.saving : t.subscribers.addSubscriber}
             </button>
           </div>
         </form>

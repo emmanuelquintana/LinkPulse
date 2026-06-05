@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { fetchApi } from "@/lib/api";
+import { useTranslation } from "@/i18n/I18nProvider";
+import { format, type Translations } from "@/i18n/translations";
 
 type NotificationType =
   | "LINK_CREATED"
@@ -62,20 +64,21 @@ function unwrapData<T>(result: any, fallback: T): T {
   return result?.data ?? result?.items ?? result ?? fallback;
 }
 
-function formatRelativeTime(value: string) {
+function formatRelativeTime(value: string, t: Translations) {
   const timestamp = new Date(value).getTime();
   const diffMs = Math.max(Date.now() - timestamp, 0);
   const minute = 60 * 1000;
   const hour = 60 * minute;
   const day = 24 * hour;
 
-  if (diffMs < minute) return "Just now";
-  if (diffMs < hour) return `${Math.floor(diffMs / minute)}m ago`;
-  if (diffMs < day) return `${Math.floor(diffMs / hour)}h ago`;
-  return `${Math.floor(diffMs / day)}d ago`;
+  if (diffMs < minute) return t.notifications.justNow;
+  if (diffMs < hour) return format(t.notifications.minutesAgo, { n: Math.floor(diffMs / minute) });
+  if (diffMs < day) return format(t.notifications.hoursAgo, { n: Math.floor(diffMs / hour) });
+  return format(t.notifications.daysAgo, { n: Math.floor(diffMs / day) });
 }
 
 export function NotificationCenter() {
+  const t = useTranslation();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -113,12 +116,12 @@ export function NotificationCenter() {
       setUnreadCount(countPayload.count ?? 0);
     } catch (err: any) {
       console.error("Failed to load notifications", err);
-      setError(err.message || "Notifications are unavailable");
+      setError(err.message || t.notifications.unavailable);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadNotifications();
@@ -229,7 +232,7 @@ export function NotificationCenter() {
         type="button"
         onClick={() => setIsOpen((current) => !current)}
         className="relative flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 transition-all hover:bg-gray-50 hover:text-gray-900 active:scale-95"
-        aria-label="Open notifications"
+        aria-label={t.notifications.openAria}
         aria-expanded={isOpen}
       >
         <Bell className="h-5 w-5" strokeWidth={2} />
@@ -244,9 +247,9 @@ export function NotificationCenter() {
         <div className="absolute right-0 top-12 z-30 w-[min(380px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_24px_80px_-24px_rgba(15,23,42,0.35)]">
           <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
             <div>
-              <p className="text-sm font-black text-gray-900">Notifications</p>
+              <p className="text-sm font-black text-gray-900">{t.notifications.title}</p>
               <p className="text-[11px] font-semibold text-gray-400">
-                {hasUnread ? `${unreadCount} unread` : "All caught up"}
+                {hasUnread ? format(t.notifications.unread, { n: unreadCount }) : t.notifications.allCaughtUp}
               </p>
             </div>
             <button
@@ -256,7 +259,7 @@ export function NotificationCenter() {
               className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold text-indigo-600 transition-all hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-gray-300"
             >
               <CheckCheck className="h-3.5 w-3.5" strokeWidth={2} />
-              Mark all
+              {t.notifications.markAll}
             </button>
           </div>
 
@@ -284,7 +287,7 @@ export function NotificationCenter() {
                   onClick={() => loadNotifications()}
                   className="mt-4 rounded-lg bg-gray-900 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-gray-800 active:scale-95"
                 >
-                  Try again
+                  {t.notifications.tryAgain}
                 </button>
               </div>
             ) : notifications.length === 0 ? (
@@ -293,11 +296,10 @@ export function NotificationCenter() {
                   <Inbox className="h-5 w-5" strokeWidth={2} />
                 </div>
                 <p className="text-sm font-black text-gray-900">
-                  No notifications yet
+                  {t.notifications.empty}
                 </p>
                 <p className="mt-1 text-xs font-medium text-gray-500">
-                  Activity from links, campaigns and workspaces will appear
-                  here.
+                  {t.notifications.emptyHint}
                 </p>
               </div>
             ) : (
@@ -335,7 +337,7 @@ export function NotificationCenter() {
                               {notification.title}
                             </span>
                             <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">
-                              {formatRelativeTime(notification.createdAt)}
+                              {formatRelativeTime(notification.createdAt, t)}
                             </span>
                           </span>
                           {notification.body && (
@@ -359,7 +361,7 @@ export function NotificationCenter() {
                             type="button"
                             onClick={() => markAsRead(notification)}
                             className="rounded-lg p-1.5 text-gray-400 transition-all hover:bg-white hover:text-indigo-600 active:scale-95"
-                            aria-label="Mark as read"
+                            aria-label={t.notifications.markReadAria}
                           >
                             <Check className="h-3.5 w-3.5" strokeWidth={2.2} />
                           </button>
@@ -368,7 +370,7 @@ export function NotificationCenter() {
                           type="button"
                           onClick={() => deleteNotification(notification)}
                           className="rounded-lg p-1.5 text-gray-400 transition-all hover:bg-white hover:text-red-500 active:scale-95"
-                          aria-label="Delete notification"
+                          aria-label={t.notifications.deleteAria}
                         >
                           <Trash2 className="h-3.5 w-3.5" strokeWidth={2.2} />
                         </button>

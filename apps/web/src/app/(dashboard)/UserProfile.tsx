@@ -5,8 +5,10 @@ import { fetchApi } from '@/lib/api';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 export function UserProfile() {
+  const t = useTranslation();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -62,7 +64,7 @@ export function UserProfile() {
     if (profile?.firstName || profile?.lastName) {
       return `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
     }
-    return profile?.email || 'User';
+    return profile?.email || t.userProfile.user;
   };
 
   const getInitials = () => {
@@ -85,14 +87,14 @@ export function UserProfile() {
             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors no-underline"
           >
             <span className="material-symbols-outlined text-gray-400 text-lg">person</span>
-            View Profile
+            {t.userProfile.viewProfile}
           </Link>
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left font-medium border-none bg-transparent cursor-pointer"
           >
             <span className="material-symbols-outlined text-red-400 text-lg">logout</span>
-            Sign Out
+            {t.userProfile.signOut}
           </button>
         </div>
       )}
@@ -111,9 +113,9 @@ export function UserProfile() {
         </div>
         <div className="flex flex-col flex-1 min-w-0">
           <span className="text-sm font-semibold text-gray-900 leading-tight truncate">
-            {loading ? 'Loading...' : getDisplayName()}
+            {loading ? t.common.loading : getDisplayName()}
           </span>
-          <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">Pro Plan</span>
+          <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">{t.userProfile.proPlan}</span>
         </div>
         <button 
           onClick={(e) => {

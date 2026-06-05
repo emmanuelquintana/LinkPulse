@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 interface Campaign {
   id: string;
@@ -24,6 +25,7 @@ interface EditLinkModalProps {
 }
 
 export default function EditLinkModal({ isOpen, onClose, link, onSuccess }: EditLinkModalProps) {
+  const t = useTranslation();
   const [destination, setDestination] = useState('');
   const [title, setTitle] = useState('');
   const [campaignId, setCampaignId] = useState('');
@@ -75,7 +77,7 @@ export default function EditLinkModal({ isOpen, onClose, link, onSuccess }: Edit
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to update link');
+      setError(err.message || t.modals.linkUpdateError);
     } finally {
       setLoading(false);
     }
@@ -88,8 +90,8 @@ export default function EditLinkModal({ isOpen, onClose, link, onSuccess }: Edit
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden ring-1 ring-gray-200 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <div>
-            <h3 className="text-xl font-bold text-gray-900 tracking-tight">Edit Link</h3>
-            <p className="text-xs text-gray-500 font-medium mt-0.5">Update your link settings and destination.</p>
+            <h3 className="text-xl font-bold text-gray-900 tracking-tight">{t.modals.editLinkTitle}</h3>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">{t.modals.editLinkSubtitle}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-full p-1.5 transition-colors">
             <span className="material-symbols-outlined text-[20px]">close</span>
@@ -105,7 +107,7 @@ export default function EditLinkModal({ isOpen, onClose, link, onSuccess }: Edit
           )}
           
           <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700 block">Destination URL</label>
+            <label className="text-sm font-bold text-gray-700 block">{t.modals.destinationUrl}</label>
             <input 
               type="url" 
               required 
@@ -118,10 +120,10 @@ export default function EditLinkModal({ isOpen, onClose, link, onSuccess }: Edit
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700 block">Title (Optional)</label>
-              <input 
-                type="text" 
-                placeholder="My Awesome Link"
+              <label className="text-sm font-bold text-gray-700 block">{t.modals.titleOptional}</label>
+              <input
+                type="text"
+                placeholder={t.modals.titlePlaceholder}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
@@ -129,14 +131,14 @@ export default function EditLinkModal({ isOpen, onClose, link, onSuccess }: Edit
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-700 block">Campaign (Optional)</label>
+              <label className="text-sm font-bold text-gray-700 block">{t.modals.campaignOptional}</label>
               <select 
                 value={campaignId}
                 onChange={(e) => setCampaignId(e.target.value)}
                 disabled={loadingCampaigns}
                 className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold disabled:opacity-50"
               >
-                <option value="">No Campaign</option>
+                <option value="">{t.modals.noCampaign}</option>
                 {campaigns.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -150,7 +152,7 @@ export default function EditLinkModal({ isOpen, onClose, link, onSuccess }: Edit
                   <span className="material-symbols-outlined text-indigo-600 text-sm">link</span>
                </div>
                <div>
-                  <p className="text-[0.7rem] font-bold text-indigo-400 uppercase tracking-wider">Short URL (Immutable)</p>
+                  <p className="text-[0.7rem] font-bold text-indigo-400 uppercase tracking-wider">{t.modals.shortUrlImmutable}</p>
                   <p className="text-sm font-bold text-indigo-900 truncate">localhost:3002/{link.customAlias || link.shortCode}</p>
                </div>
              </div>
@@ -162,7 +164,7 @@ export default function EditLinkModal({ isOpen, onClose, link, onSuccess }: Edit
               onClick={onClose}
               className="flex-1 h-11 px-4 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-colors"
             >
-              Cancel
+              {t.common.cancel}
             </button>
             <button 
               type="submit" 
@@ -172,9 +174,9 @@ export default function EditLinkModal({ isOpen, onClose, link, onSuccess }: Edit
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white"></div>
-                  Saving...
+                  {t.common.saving}
                 </>
-              ) : 'Save Changes'}
+              ) : t.modals.saveChanges}
             </button>
           </div>
         </form>

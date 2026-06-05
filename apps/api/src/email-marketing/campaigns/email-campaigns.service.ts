@@ -112,8 +112,8 @@ export class EmailCampaignsService {
     const redirectorUrl = process.env.REDIRECTOR_URL ?? 'http://localhost:3002';
     const settings = await this.emailSender.getWorkspaceSettings(workspaceId);
 
-    const ccList = campaign.cc ? campaign.cc.split(',').map((e) => e.trim()).filter(Boolean) : [];
-    const bccList = campaign.bcc ? campaign.bcc.split(',').map((e) => e.trim()).filter(Boolean) : [];
+    const ccList = campaign.cc ? campaign.cc.split(',').map((e: string) => e.trim()).filter(Boolean) : [];
+    const bccList = campaign.bcc ? campaign.bcc.split(',').map((e: string) => e.trim()).filter(Boolean) : [];
 
     await this.prisma.emailCampaign.update({
       where: { id: campaignId },

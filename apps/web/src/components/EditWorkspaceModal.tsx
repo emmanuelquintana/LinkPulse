@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 interface Workspace {
   id: string;
@@ -16,6 +17,7 @@ interface EditWorkspaceModalProps {
 }
 
 export default function EditWorkspaceModal({ isOpen, onClose, workspace, onSuccess }: EditWorkspaceModalProps) {
+  const t = useTranslation();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export default function EditWorkspaceModal({ isOpen, onClose, workspace, onSucce
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Error updating workspace');
+      setError(err.message || t.modals.workspaceUpdateError);
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ export default function EditWorkspaceModal({ isOpen, onClose, workspace, onSucce
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden ring-1 ring-gray-200 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
-          <h3 className="text-xl font-bold text-gray-900 tracking-tight">Edit Workspace</h3>
+          <h3 className="text-xl font-bold text-gray-900 tracking-tight">{t.modals.editWorkspaceTitle}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-full p-1 transition-colors">
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -67,11 +69,11 @@ export default function EditWorkspaceModal({ isOpen, onClose, workspace, onSucce
           )}
           
           <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-700 block">Workspace Name</label>
-            <input 
-              type="text" 
-              required 
-              placeholder="e.g. Marketing Team"
+            <label className="text-sm font-bold text-gray-700 block">{t.modals.workspaceName}</label>
+            <input
+              type="text"
+              required
+              placeholder={t.modals.workspaceNamePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors font-medium"
@@ -85,14 +87,14 @@ export default function EditWorkspaceModal({ isOpen, onClose, workspace, onSucce
               onClick={onClose}
               className="flex-1 h-11 px-4 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors"
             >
-              Cancel
+              {t.common.cancel}
             </button>
             <button 
               type="submit" 
               disabled={loading || !name.trim() || name === workspace?.name}
               className="flex-1 h-11 px-4 bg-indigo-600 border border-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 hover:border-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
             >
-              {loading ? 'Saving...' : 'Save Changes'}
+              {loading ? t.common.saving : t.modals.saveChanges}
             </button>
           </div>
         </form>
