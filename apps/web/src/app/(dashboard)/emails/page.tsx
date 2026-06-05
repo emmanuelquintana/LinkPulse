@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/api';
 import { Mail, Plus, Send, BarChart2, Clock, CheckCircle, X, FileText, Settings, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslation } from '@/i18n/I18nProvider';
+import { format } from '@/i18n/translations';
+import { sileo } from 'sileo';
 
 interface EmailCampaign {
   id: string;
@@ -21,13 +24,14 @@ interface Workspace {
   name: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  DRAFT: { label: 'Draft', icon: <FileText className="w-3 h-3" />, color: 'bg-gray-100 text-gray-600' },
-  SENDING: { label: 'Sending', icon: <Clock className="w-3 h-3" />, color: 'bg-amber-50 text-amber-600' },
-  SENT: { label: 'Sent', icon: <CheckCircle className="w-3 h-3" />, color: 'bg-green-50 text-green-600' },
+const STATUS_CONFIG: Record<string, { labelKey: 'statusDraft' | 'statusSending' | 'statusSent'; icon: React.ReactNode; color: string }> = {
+  DRAFT: { labelKey: 'statusDraft', icon: <FileText className="w-3 h-3" />, color: 'bg-gray-100 text-gray-600' },
+  SENDING: { labelKey: 'statusSending', icon: <Clock className="w-3 h-3" />, color: 'bg-amber-50 text-amber-600' },
+  SENT: { labelKey: 'statusSent', icon: <CheckCircle className="w-3 h-3" />, color: 'bg-green-50 text-green-600' },
 };
 
 export default function EmailsPage() {
+  const t = useTranslation();
   const [campaigns, setCampaigns] = useState<EmailCampaign[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState('');
@@ -68,17 +72,17 @@ export default function EmailsPage() {
   }
 
   async function handleSend(campaignId: string) {
-    if (!confirm('Send this campaign to all active subscribers now?')) return;
+    if (!confirm(t.emails.confirmSend)) return;
     setSending(campaignId);
     try {
       const result = await fetchApi(
         `/email-campaigns/${campaignId}/send?workspaceId=${selectedWorkspace}`,
         { method: 'POST' },
       );
-      alert(`Sent to ${result?.data?.sent ?? 0} subscribers!`);
+      sileo.success({ title: format(t.emails.sentToSubscribers, { n: result?.data?.sent ?? 0 }) });
       loadCampaigns();
     } catch (err: any) {
-      alert(err.message || 'Send failed');
+      sileo.error({ title: t.emails.sendFailed, description: err.message });
     } finally {
       setSending(null);
     }
@@ -91,9 +95,9 @@ export default function EmailsPage() {
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
             <Mail className="w-8 h-8 text-indigo-600" />
-            Email Campaigns
+            {t.emails.title}
           </h1>
-          <p className="text-gray-500 font-medium mt-1">Create and send email campaigns to your audience.</p>
+          <p className="text-gray-500 font-medium mt-1">{t.emails.subtitle}</p>
         </div>
         <div className="flex items-center gap-3">
           <select
@@ -110,14 +114,14 @@ export default function EmailsPage() {
             className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-all"
           >
             <Settings className="w-4 h-4" />
-            SMTP Settings
+            {t.emails.smtpSettings}
           </Link>
           <button
             onClick={() => setShowCreate(true)}
             className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            New Campaign
+            {t.emails.newCampaign}
           </button>
         </div>
       </div>
@@ -134,13 +138,13 @@ export default function EmailsPage() {
           <div className="h-20 w-20 rounded-full bg-indigo-50 text-indigo-200 flex items-center justify-center mb-6">
             <Mail className="w-10 h-10 text-indigo-200" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">No campaigns yet</h2>
-          <p className="text-gray-500 max-w-sm mt-3 font-medium">Create your first email campaign to start tracking opens, clicks, and engagement.</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t.emails.noCampaignsTitle}</h2>
+          <p className="text-gray-500 max-w-sm mt-3 font-medium">{t.emails.noCampaignsSubtitle}</p>
           <button
             onClick={() => setShowCreate(true)}
             className="mt-8 text-indigo-600 font-bold hover:text-indigo-800 flex items-center gap-2 group"
           >
-            Create your first campaign
+            {t.emails.createFirst}
             <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
           </button>
         </div>
@@ -154,11 +158,11 @@ export default function EmailsPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${statusCfg.color}`}>
                       {statusCfg.icon}
-                      {statusCfg.label}
+                      {t.emails[statusCfg.labelKey]}
                     </span>
                     {campaign.sentAt && (
                       <span className="text-xs text-gray-400">
-                        Sent {new Date(campaign.sentAt).toLocaleDateString()}
+                        {t.emails.sentOn} {new Date(campaign.sentAt).toLocaleDateString()}
                       </span>
                     )}
                   </div>
@@ -167,7 +171,7 @@ export default function EmailsPage() {
                     <p className="text-sm text-gray-400 truncate">{campaign.previewText}</p>
                   )}
                   <p className="text-xs text-gray-400 mt-1">
-                    From: {campaign.senderName} &lt;{campaign.senderEmail}&gt;
+                    {t.emails.from}: {campaign.senderName} &lt;{campaign.senderEmail}&gt;
                   </p>
                 </div>
 
@@ -178,7 +182,7 @@ export default function EmailsPage() {
                       className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <BarChart2 className="w-4 h-4" />
-                      Stats
+                      {t.emails.stats}
                     </Link>
                   )}
                   {campaign.status === 'DRAFT' && (
@@ -188,7 +192,7 @@ export default function EmailsPage() {
                       className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all disabled:opacity-60 shadow-sm"
                     >
                       <Send className="w-4 h-4" />
-                      {sending === campaign.id ? 'Sending…' : 'Send'}
+                      {sending === campaign.id ? t.emails.sendingShort : t.emails.send}
                     </button>
                   )}
                 </div>
@@ -219,6 +223,7 @@ function CreateCampaignModal({
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const t = useTranslation();
   const [form, setForm] = useState({
     subject: '',
     previewText: '',
@@ -257,7 +262,7 @@ function CreateCampaignModal({
       });
       onSuccess();
     } catch (err: any) {
-      setError(err.message || 'Failed to create campaign');
+      setError(err.message || t.emails.createError);
     } finally {
       setSaving(false);
     }
@@ -269,34 +274,34 @@ function CreateCampaignModal({
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-gray-900">New Email Campaign</h2>
+          <h2 className="text-xl font-bold text-gray-900">{t.emails.newEmailCampaign}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X className="w-5 h-5" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Subject & Preview */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Subject line *</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">{t.emails.subjectLine} *</label>
             <input required value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })}
-              className={inputCls} placeholder="Our May Newsletter" />
+              className={inputCls} placeholder={t.emails.subjectPlaceholder} />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Preview text</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">{t.emails.previewText}</label>
             <input value={form.previewText} onChange={(e) => setForm({ ...form, previewText: e.target.value })}
-              className={inputCls} placeholder="What's new this month…" />
+              className={inputCls} placeholder={t.emails.previewPlaceholder} />
           </div>
 
           {/* Sender */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Sender name *</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t.emails.senderName} *</label>
               <input required value={form.senderName} onChange={(e) => setForm({ ...form, senderName: e.target.value })}
-                className={inputCls} placeholder="My Company" />
+                className={inputCls} placeholder={t.emails.senderNamePlaceholder} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Sender email *</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">{t.emails.senderEmail} *</label>
               <input required type="email" value={form.senderEmail} onChange={(e) => setForm({ ...form, senderEmail: e.target.value })}
-                className={inputCls} placeholder="noreply@company.com" />
+                className={inputCls} placeholder={t.emails.senderEmailPlaceholder} />
             </div>
           </div>
 
@@ -307,23 +312,23 @@ function CreateCampaignModal({
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
             >
-              <span>Advanced options (CC · BCC · Reply-To)</span>
+              <span>{t.emails.advancedOptions}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
             </button>
             {showAdvanced && (
               <div className="p-4 space-y-3 bg-white">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">CC <span className="text-gray-400 font-normal">(comma separated)</span></label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">CC <span className="text-gray-400 font-normal">{t.emails.ccCommaSeparated}</span></label>
                   <input value={form.cc} onChange={(e) => setForm({ ...form, cc: e.target.value })}
                     className={inputCls} placeholder="manager@company.com, director@company.com" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">BCC <span className="text-gray-400 font-normal">(copia oculta, comma separated)</span></label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">{t.emails.bccLabel} <span className="text-gray-400 font-normal">{t.emails.bccHelp}</span></label>
                   <input value={form.bcc} onChange={(e) => setForm({ ...form, bcc: e.target.value })}
                     className={inputCls} placeholder="analytics@company.com" />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Reply-To</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">{t.emails.replyTo}</label>
                   <input type="email" value={form.replyTo} onChange={(e) => setForm({ ...form, replyTo: e.target.value })}
                     className={inputCls} placeholder="support@company.com" />
                 </div>
@@ -334,8 +339,8 @@ function CreateCampaignModal({
           {/* HTML Content */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
-              HTML Content *
-              <span className="ml-2 text-xs text-gray-400 font-normal">Use {'{{firstName}}'} for personalization</span>
+              {t.emails.htmlContent} *
+              <span className="ml-2 text-xs text-gray-400 font-normal">{t.emails.personalizationHint}</span>
             </label>
             <textarea required rows={9} value={form.htmlContent}
               onChange={(e) => setForm({ ...form, htmlContent: e.target.value })}
@@ -349,11 +354,11 @@ function CreateCampaignModal({
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50">
-              Cancel
+              {t.common.cancel}
             </button>
             <button type="submit" disabled={saving}
               className="flex-1 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50">
-              {saving ? 'Saving…' : 'Save as Draft'}
+              {saving ? t.common.saving : t.emails.saveAsDraft}
             </button>
           </div>
         </form>

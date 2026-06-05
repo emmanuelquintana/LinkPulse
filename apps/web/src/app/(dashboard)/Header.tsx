@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { NotificationCenter } from "@/components/NotificationCenter";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 interface HeaderProps {
   title: string;
@@ -14,6 +15,8 @@ export const Header: React.FC<HeaderProps> = ({ title, actions }) => {
 
       <div className="flex items-center gap-4">
         {actions}
+
+        <LanguageSelector />
 
         <div className="flex items-center gap-3 border-l border-gray-200 pl-4 ml-2">
           <NotificationCenter />

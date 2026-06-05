@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { fetchApi } from "@/lib/api";
 import Link from "next/link";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 interface Workspace {
   id: string;
@@ -12,6 +13,7 @@ interface Workspace {
 
 export default function CreateLinkPage() {
   const router = useRouter();
+  const t = useTranslation();
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState("");
@@ -38,7 +40,7 @@ export default function CreateLinkPage() {
         }
       } catch (err) {
         console.error("Failed to load workspaces", err);
-        setError("Failed to load your workspaces. Please refresh the page.");
+        setError(t.createLink.loadWorkspacesError);
       } finally {
         setLoadingConfig(false);
       }
@@ -71,7 +73,7 @@ export default function CreateLinkPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedWorkspace) {
-      setError("Please select a workspace to continue.");
+      setError(t.createLink.selectWorkspaceError);
       return;
     }
 
@@ -92,7 +94,7 @@ export default function CreateLinkPage() {
       // Route back to the links table
       router.push("/dashboard/links");
     } catch (err: any) {
-      setError(err.message || "An error occurred while creating the link");
+      setError(err.message || t.createLink.createError);
     } finally {
       setCreating(false);
     }
@@ -116,14 +118,13 @@ export default function CreateLinkPage() {
           <span className="material-symbols-outlined text-[18px] mr-1">
             arrow_back
           </span>
-          Back to Links
+          {t.createLink.backToLinks}
         </Link>
         <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
-          Create new link
+          {t.createLink.title}
         </h2>
         <p className="text-gray-500 mt-2">
-          Generate a short URL to share with your audience and track its
-          performance.
+          {t.createLink.subtitle}
         </p>
       </div>
 
@@ -140,10 +141,10 @@ export default function CreateLinkPage() {
 
           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-900 block">
-              Workspace
+              {t.createLink.workspace}
             </label>
             <p className="text-[0.8rem] text-gray-500 mb-2 font-medium">
-              Select the workspace where this link will be managed.
+              {t.createLink.workspaceHelp}
             </p>
             <select
               required
@@ -152,7 +153,7 @@ export default function CreateLinkPage() {
               className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors"
             >
               <option value="" disabled>
-                Select a workspace...
+                {t.createLink.selectWorkspace}
               </option>
               {workspaces.map((ws) => (
                 <option key={ws.id} value={ws.id}>
@@ -164,10 +165,10 @@ export default function CreateLinkPage() {
 
           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-900 block">
-              Destination URL
+              {t.createLink.destinationUrl}
             </label>
             <p className="text-[0.8rem] text-gray-500 mb-2 font-medium">
-              The long URL where visitors will be redirected to.
+              {t.createLink.destinationHelp}
             </p>
             <input
               type="url"
@@ -181,11 +182,11 @@ export default function CreateLinkPage() {
 
           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-900 flex justify-between">
-              Campaign{" "}
-              <span className="text-gray-400 font-normal">(optional)</span>
+              {t.createLink.campaign}{" "}
+              <span className="text-gray-400 font-normal">({t.common.optional})</span>
             </label>
             <p className="text-[0.8rem] text-gray-500 mb-2 font-medium">
-              Associate this link with a marketing campaign.
+              {t.createLink.campaignHelp}
             </p>
             <select
               value={selectedCampaign}
@@ -193,7 +194,7 @@ export default function CreateLinkPage() {
               disabled={loadingCampaigns || campaigns.length === 0}
               className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors disabled:opacity-50"
             >
-              <option value="">No campaign</option>
+              <option value="">{t.createLink.noCampaign}</option>
               {campaigns.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -204,7 +205,7 @@ export default function CreateLinkPage() {
               !loadingCampaigns &&
               selectedWorkspace && (
                 <p className="text-[0.7rem] text-indigo-500 font-medium">
-                  No campaigns found in this workspace.
+                  {t.createLink.noCampaignsInWorkspace}
                 </p>
               )}
           </div>
@@ -212,15 +213,15 @@ export default function CreateLinkPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-900 flex justify-between">
-                Title{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                {t.createLink.titleLabel}{" "}
+                <span className="text-gray-400 font-normal">({t.common.optional})</span>
               </label>
               <p className="text-[0.8rem] text-gray-500 mb-2 font-medium">
-                Identify your link internally.
+                {t.createLink.titleHelp}
               </p>
               <input
                 type="text"
-                placeholder="Summer Campaign 2026"
+                placeholder={t.createLink.titlePlaceholder}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors"
@@ -229,11 +230,11 @@ export default function CreateLinkPage() {
 
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-900 flex justify-between">
-                Custom alias{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                {t.createLink.customAlias}{" "}
+                <span className="text-gray-400 font-normal">({t.common.optional})</span>
               </label>
               <p className="text-[0.8rem] text-gray-500 mb-2 font-medium">
-                Create a branded, memorable short link.
+                {t.createLink.customAliasHelp}
               </p>
               <div className="flex items-center">
                 <div className="h-11 px-4 bg-gray-100 border border-gray-200 border-r-0 rounded-l-lg text-sm text-gray-500 font-bold flex items-center justify-center">
@@ -255,7 +256,7 @@ export default function CreateLinkPage() {
               href="/dashboard/links"
               className="h-11 px-6 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors flex items-center justify-center"
             >
-              Cancel
+              {t.common.cancel}
             </Link>
             <button
               type="submit"
@@ -265,10 +266,10 @@ export default function CreateLinkPage() {
               {creating ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/20 border-t-white"></div>
-                  Creating
+                  {t.common.creating}
                 </>
               ) : (
-                "Create short link"
+                t.createLink.createShortLink
               )}
             </button>
           </div>

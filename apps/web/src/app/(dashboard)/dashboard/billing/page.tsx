@@ -3,8 +3,11 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { fetchApi } from '@/lib/api';
 import { useSearchParams } from 'next/navigation';
+import { useTranslation } from '@/i18n/I18nProvider';
+import { sileo } from 'sileo';
 
 function BillingContent() {
+  const t = useTranslation();
   const [workspaces, setWorkspaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
@@ -38,7 +41,7 @@ function BillingContent() {
       const priceId = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
       
       if (!priceId) {
-        throw new Error("Stripe Price ID is not configured");
+        throw new Error(t.billing.stripeNotConfigured);
       }
 
       const response = await fetchApi('/billing/checkout', {
@@ -55,7 +58,7 @@ function BillingContent() {
       }
     } catch (err) {
       console.error("Failed to start checkout", err);
-      alert("Error starting checkout. Please try again.");
+      sileo.error({ title: t.billing.checkoutError, description: (err as any)?.message });
     } finally {
       setProcessing(false);
     }
@@ -78,7 +81,7 @@ function BillingContent() {
       }
     } catch (err) {
       console.error("Failed to open portal", err);
-      alert("Error opening billing portal. Please try again.");
+      sileo.error({ title: t.billing.portalError, description: (err as any)?.message });
     } finally {
       setProcessing(false);
     }
@@ -98,8 +101,8 @@ function BillingContent() {
   return (
     <div className="max-w-5xl mx-auto font-sans pb-20">
       <div className="mb-8">
-        <h2 className="text-3xl font-black text-gray-900 tracking-tight">Billing & Plans</h2>
-        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-1">Manage your subscriptions and usage</p>
+        <h2 className="text-3xl font-black text-gray-900 tracking-tight">{t.billing.title}</h2>
+        <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-1">{t.billing.subtitle}</p>
       </div>
 
       {success && (
@@ -108,8 +111,8 @@ function BillingContent() {
             <span className="material-symbols-outlined">check_circle</span>
           </div>
           <div>
-            <h4 className="text-sm font-black text-emerald-900 uppercase tracking-widest">Upgrade Successful!</h4>
-            <p className="text-xs font-bold text-emerald-600 mt-0.5">Your workspace has been upgraded to PRO. Enjoy the new features!</p>
+            <h4 className="text-sm font-black text-emerald-900 uppercase tracking-widest">{t.billing.upgradeSuccess}</h4>
+            <p className="text-xs font-bold text-emerald-600 mt-0.5">{t.billing.upgradeSuccessText}</p>
           </div>
         </div>
       )}
@@ -120,8 +123,8 @@ function BillingContent() {
             <span className="material-symbols-outlined">cancel</span>
           </div>
           <div>
-            <h4 className="text-sm font-black text-rose-900 uppercase tracking-widest">Checkout Canceled</h4>
-            <p className="text-xs font-bold text-rose-600 mt-0.5">No changes were made to your account. You can try again whenever you're ready.</p>
+            <h4 className="text-sm font-black text-rose-900 uppercase tracking-widest">{t.billing.checkoutCanceled}</h4>
+            <p className="text-xs font-bold text-rose-600 mt-0.5">{t.billing.checkoutCanceledText}</p>
           </div>
         </div>
       )}
@@ -130,7 +133,7 @@ function BillingContent() {
         {/* Workspace Selection */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6">Select Workspace</h3>
+            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6">{t.billing.selectWorkspace}</h3>
             <div className="space-y-3">
               {workspaces.map((ws) => (
                 <button
@@ -154,10 +157,10 @@ function BillingContent() {
 
           <div className="bg-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-100 overflow-hidden relative group">
              <div className="absolute top-0 right-0 h-32 w-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
-             <h3 className="text-xl font-black tracking-tight relative z-10">Need more?</h3>
-             <p className="text-xs font-bold text-indigo-100 mt-2 relative z-10 uppercase tracking-widest leading-relaxed">Contact us for Enterprise plans, dedicated support, and custom data retention.</p>
+             <h3 className="text-xl font-black tracking-tight relative z-10">{t.billing.needMore}</h3>
+             <p className="text-xs font-bold text-indigo-100 mt-2 relative z-10 uppercase tracking-widest leading-relaxed">{t.billing.needMoreText}</p>
              <button className="mt-6 bg-white text-indigo-600 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all relative z-10">
-               Contact Sales
+               {t.billing.contactSales}
              </button>
           </div>
         </div>
@@ -168,14 +171,14 @@ function BillingContent() {
           <div className={`bg-white rounded-[2rem] border p-10 flex flex-col justify-between transition-all ${!isPro ? 'border-indigo-600 ring-4 ring-indigo-50 shadow-xl' : 'border-gray-100 shadow-sm opacity-80'}`}>
             <div>
               <div className="flex items-center justify-between mb-8">
-                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">Free Tier</span>
+                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">{t.billing.freeTier}</span>
                 {!isPro && <span className="material-symbols-outlined text-indigo-600">check_circle</span>}
               </div>
-              <h4 className="text-4xl font-black text-gray-900">$0<span className="text-sm font-bold text-gray-400">/mo</span></h4>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-6 mb-8">Perfect for hobbyists</p>
-              
+              <h4 className="text-4xl font-black text-gray-900">$0<span className="text-sm font-bold text-gray-400">{t.billing.perMonth}</span></h4>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-6 mb-8">{t.billing.perfectHobbyists}</p>
+
               <ul className="space-y-4">
-                {['100 Links/month', 'Basic Analytics', 'Standard Support', 'QR Generation'].map((feature, i) => (
+                {t.billing.freeFeatures.map((feature, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm font-bold text-gray-600">
                     <span className="material-symbols-outlined text-emerald-500 text-[18px]">done</span>
                     {feature}
@@ -188,25 +191,25 @@ function BillingContent() {
               disabled={!isPro}
               className={`mt-10 h-14 w-full rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all ${!isPro ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-black'}`}
             >
-              {!isPro ? 'Current Plan' : 'Downgrade'}
+              {!isPro ? t.billing.currentPlan : t.billing.downgrade}
             </button>
           </div>
 
           {/* PRO PLAN */}
           <div className={`bg-white rounded-[2rem] border p-10 flex flex-col justify-between transition-all relative overflow-hidden ${isPro ? 'border-indigo-600 ring-4 ring-indigo-50 shadow-xl' : 'border-gray-100 shadow-sm hover:border-indigo-200'}`}>
             {isPro && (
-              <div className="absolute top-4 right-4 bg-indigo-600 text-white text-[10px] font-black uppercase px-3 py-1 rounded-lg">Active</div>
+              <div className="absolute top-4 right-4 bg-indigo-600 text-white text-[10px] font-black uppercase px-3 py-1 rounded-lg">{t.billing.active}</div>
             )}
             <div>
               <div className="flex items-center justify-between mb-8">
-                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">Pro Plan</span>
+                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">{t.billing.proPlan}</span>
                 <span className="material-symbols-outlined text-indigo-400">workspace_premium</span>
               </div>
-              <h4 className="text-4xl font-black text-gray-900">$19<span className="text-sm font-bold text-gray-400">/mo</span></h4>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-6 mb-8">For serious marketers</p>
-              
+              <h4 className="text-4xl font-black text-gray-900">$19<span className="text-sm font-bold text-gray-400">{t.billing.perMonth}</span></h4>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-6 mb-8">{t.billing.seriousMarketers}</p>
+
               <ul className="space-y-4">
-                {['Unlimited Links', 'Advanced Analytics', 'Priority Support', 'Custom Domains', 'A/B Testing (Beta)'].map((feature, i) => (
+                {t.billing.proFeatures.map((feature, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm font-bold text-gray-600">
                     <span className="material-symbols-outlined text-indigo-500 text-[18px]">done_all</span>
                     {feature}
@@ -221,7 +224,7 @@ function BillingContent() {
                 disabled={processing}
                 className="mt-10 h-14 w-full bg-indigo-50 text-indigo-600 rounded-[1.2rem] text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 shadow-sm border border-indigo-100"
               >
-                {processing ? <div className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /> : <><span className="material-symbols-outlined text-[18px]">payments</span> Manage Subscription</>}
+                {processing ? <div className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /> : <><span className="material-symbols-outlined text-[18px]">payments</span> {t.billing.manageSubscription}</>}
               </button>
             ) : (
               <button 
@@ -229,7 +232,7 @@ function BillingContent() {
                 disabled={processing}
                 className="mt-10 h-14 w-full bg-indigo-600 text-white rounded-[1.2rem] text-xs font-black uppercase tracking-widest hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-indigo-100"
               >
-                {processing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span className="material-symbols-outlined text-[18px]">bolt</span> Upgrade Now</>}
+                {processing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span className="material-symbols-outlined text-[18px]">bolt</span> {t.billing.upgradeNow}</>}
               </button>
             )}
           </div>

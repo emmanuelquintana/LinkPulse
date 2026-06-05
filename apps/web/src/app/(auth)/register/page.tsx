@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { useTranslation } from '@/i18n/I18nProvider';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,12 +48,12 @@ export default function RegisterPage() {
           LinkPulse
         </Link>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Create your account
+          {t.auth.createAccountTitle}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Already have an account?{' '}
+          {t.auth.alreadyHaveAccount}{' '}
           <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-            Sign in
+            {t.auth.signIn}
           </Link>
         </p>
       </div>
@@ -67,7 +69,7 @@ export default function RegisterPage() {
             
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Full Name
+                {t.auth.fullName}
               </label>
               <div className="mt-1">
                 <input
@@ -84,7 +86,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+                {t.auth.emailAddress}
               </label>
               <div className="mt-1">
                 <input
@@ -102,7 +104,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
+                {t.auth.password}
               </label>
               <div className="mt-1">
                 <input
@@ -130,13 +132,13 @@ export default function RegisterPage() {
               </div>
               <div className="ml-3 text-sm">
                 <label htmlFor="terms" className="text-gray-900">
-                  I agree to the{' '}
+                  {t.auth.iAgree}{' '}
                   <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                    Terms
+                    {t.auth.termsWord}
                   </a>{' '}
-                  and{' '}
+                  {t.auth.and}{' '}
                   <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                    Privacy Policy
+                    {t.auth.privacyPolicy}
                   </a>
                 </label>
               </div>
@@ -148,7 +150,7 @@ export default function RegisterPage() {
                 disabled={loading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                {loading ? 'Signing up...' : 'Sign up'}
+                {loading ? t.auth.signingUp : t.auth.signUp}
               </button>
             </div>
           </form>

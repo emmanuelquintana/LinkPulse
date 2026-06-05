@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { fetchApi } from "@/lib/api";
 import Link from "next/link";
+import { useTranslation } from "@/i18n/I18nProvider";
+import { format } from "@/i18n/translations";
 
 interface Link {
   id: string;
@@ -25,6 +27,7 @@ interface AnalyticsData {
 }
 
 export default function DashboardHomePage() {
+  const t = useTranslation();
   const [links, setLinks] = useState<Link[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +80,7 @@ export default function DashboardHomePage() {
   };
 
   const handleArchive = async (linkId: string) => {
-    if (!confirm("Are you sure you want to archive this link?")) return;
+    if (!confirm(t.dashboard.confirmArchive)) return;
     try {
       await fetchApi(`/links/${linkId}/archive`, { method: "POST" });
       window.dispatchEvent(new Event("notifications-updated"));
@@ -173,7 +176,7 @@ export default function DashboardHomePage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-sm font-semibold text-gray-500">
-              Total Clicks
+              {t.dashboard.totalClicks}
             </span>
             <div className="h-10 w-10 rounded-lg bg-indigo-50 flex items-center justify-center">
               <span className="material-symbols-outlined text-indigo-600">
@@ -192,7 +195,7 @@ export default function DashboardHomePage() {
               --%
             </span>
             <span className="font-medium text-gray-400 ml-1.5">
-              vs last 7 days
+              {t.dashboard.vsLast7Days}
             </span>
           </div>
         </div>
@@ -201,7 +204,7 @@ export default function DashboardHomePage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-sm font-semibold text-gray-500">
-              Active Links
+              {t.dashboard.activeLinks}
             </span>
             <div className="h-10 w-10 rounded-lg bg-emerald-50 flex items-center justify-center">
               <span className="material-symbols-outlined text-emerald-600">
@@ -220,7 +223,7 @@ export default function DashboardHomePage() {
               --%
             </span>
             <span className="font-medium text-gray-400 ml-1.5">
-              vs last 7 days
+              {t.dashboard.vsLast7Days}
             </span>
           </div>
         </div>
@@ -229,7 +232,7 @@ export default function DashboardHomePage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <span className="text-sm font-semibold text-gray-500">
-              Avg. CTR
+              {t.dashboard.avgCtr}
             </span>
             <div className="h-10 w-10 rounded-lg bg-amber-50 flex items-center justify-center">
               <span className="material-symbols-outlined text-amber-500">
@@ -248,7 +251,7 @@ export default function DashboardHomePage() {
               --%
             </span>
             <span className="font-medium text-gray-400 ml-1.5">
-              vs last 7 days
+              {t.dashboard.vsLast7Days}
             </span>
           </div>
         </div>
@@ -258,10 +261,10 @@ export default function DashboardHomePage() {
         <div className="flex items-center justify-between mb-10">
           <div>
             <h3 className="text-xl font-black text-gray-900 tracking-tight">
-              Clicks Overview
+              {t.dashboard.clicksOverview}
             </h3>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
-              Analytics performance
+              {t.dashboard.analyticsPerformance}
             </p>
           </div>
 
@@ -274,7 +277,7 @@ export default function DashboardHomePage() {
               <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-indigo-600">
                 calendar_today
               </span>
-              Last {selectedDays} days
+              {format(t.dashboard.lastNDays, { n: selectedDays })}
               <span
                 className="material-symbols-outlined text-[18px] text-gray-400 group-hover:text-indigo-600 transition-transform duration-200"
                 style={{
@@ -299,7 +302,7 @@ export default function DashboardHomePage() {
                     }}
                     className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all ${selectedDays === 7 ? "bg-indigo-50 text-indigo-600" : "text-gray-600 hover:bg-gray-50"}`}
                   >
-                    Last 7 days
+                    {t.dashboard.last7Days}
                     {selectedDays === 7 && (
                       <span className="material-symbols-outlined text-[18px]">
                         check
@@ -313,7 +316,7 @@ export default function DashboardHomePage() {
                     }}
                     className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl transition-all ${selectedDays === 30 ? "bg-indigo-50 text-indigo-600" : "text-gray-600 hover:bg-gray-50"}`}
                   >
-                    Last 30 days
+                    {t.dashboard.last30Days}
                     {selectedDays === 30 && (
                       <span className="material-symbols-outlined text-[18px]">
                         check
@@ -333,9 +336,9 @@ export default function DashboardHomePage() {
                 monitoring
               </span>
             </div>
-            <p className="font-black text-gray-900">No data available yet</p>
+            <p className="font-black text-gray-900">{t.dashboard.noDataTitle}</p>
             <p className="text-sm text-gray-400 font-medium">
-              Create and share a link to start seeing statistics.
+              {t.dashboard.noDataSubtitle}
             </p>
           </div>
         ) : (
@@ -443,17 +446,17 @@ export default function DashboardHomePage() {
         <div className="flex items-center justify-between p-8 border-b border-gray-50">
           <div>
             <h3 className="text-xl font-black text-gray-900 tracking-tight">
-              Recent Links
+              {t.dashboard.recentLinks}
             </h3>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
-              Latest activity
+              {t.dashboard.latestActivity}
             </p>
           </div>
           <Link
             href="/dashboard/links"
             className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-black hover:bg-indigo-600 hover:text-white transition-all group"
           >
-            View All Links
+            {t.dashboard.viewAllLinks}
             <span className="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">
               arrow_forward
             </span>
@@ -464,11 +467,11 @@ export default function DashboardHomePage() {
           <table className="w-full text-sm text-left border-separate border-spacing-y-1">
             <thead className="text-[0.65rem] text-gray-400 uppercase font-black tracking-[0.15em]">
               <tr>
-                <th className="px-6 py-4">Short Link</th>
-                <th className="px-6 py-4 text-center">Destination</th>
-                <th className="px-6 py-4 text-center w-32">Usage</th>
-                <th className="px-6 py-4 text-center w-32">Created</th>
-                <th className="px-6 py-4 text-center w-24">Actions</th>
+                <th className="px-6 py-4">{t.dashboard.shortLink}</th>
+                <th className="px-6 py-4 text-center">{t.dashboard.destination}</th>
+                <th className="px-6 py-4 text-center w-32">{t.dashboard.usage}</th>
+                <th className="px-6 py-4 text-center w-32">{t.dashboard.created}</th>
+                <th className="px-6 py-4 text-center w-24">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -484,7 +487,7 @@ export default function DashboardHomePage() {
                           localhost:3002/{link.customAlias || link.shortCode}
                         </span>
                         <span className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-widest mt-0.5 truncate max-w-[150px]">
-                          {link.title || "Untitled"}
+                          {link.title || t.common.untitled}
                         </span>
                       </div>
                     </td>
@@ -546,7 +549,7 @@ export default function DashboardHomePage() {
                               <span className="material-symbols-outlined text-[18px]">
                                 content_copy
                               </span>
-                              Copy Link
+                              {t.dashboard.copyLink}
                             </button>
                             <button
                               onClick={() => handleEdit(link)}
@@ -555,7 +558,7 @@ export default function DashboardHomePage() {
                               <span className="material-symbols-outlined text-[18px]">
                                 edit
                               </span>
-                              Edit Details
+                              {t.dashboard.editDetails}
                             </button>
                             <div className="h-px bg-gray-50 my-1 mx-2" />
                             <button
@@ -565,7 +568,7 @@ export default function DashboardHomePage() {
                               <span className="material-symbols-outlined text-[18px]">
                                 archive
                               </span>
-                              Archive Link
+                              {t.dashboard.archiveLink}
                             </button>
                           </div>
                         </>
@@ -583,10 +586,10 @@ export default function DashboardHomePage() {
                         </span>
                       </div>
                       <p className="text-gray-900 font-black">
-                        No active links found
+                        {t.dashboard.noActiveLinks}
                       </p>
                       <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                        Share some links to see activity here
+                        {t.dashboard.shareLinksHint}
                       </p>
                     </div>
                   </td>

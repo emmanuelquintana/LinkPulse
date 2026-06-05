@@ -22,12 +22,12 @@ export class EmailAnalyticsService {
     });
 
     const total = logs.length;
-    const delivered = logs.filter((l) => ['DELIVERED', 'OPENED', 'CLICKED'].includes(l.status)).length;
-    const bounced = logs.filter((l) => l.status === 'BOUNCED').length;
-    const spam = logs.filter((l) => l.status === 'SPAM').length;
+    const delivered = logs.filter((l: any) => ['DELIVERED', 'OPENED', 'CLICKED'].includes(l.status)).length;
+    const bounced = logs.filter((l: any) => l.status === 'BOUNCED').length;
+    const spam = logs.filter((l: any) => l.status === 'SPAM').length;
 
-    const uniqueOpens = logs.filter((l) => l.opens.length > 0).length;
-    const uniqueClicks = logs.filter((l) => l.clicks.length > 0).length;
+    const uniqueOpens = logs.filter((l: any) => l.opens.length > 0).length;
+    const uniqueClicks = logs.filter((l: any) => l.clicks.length > 0).length;
     const unsubscribed = await this.prisma.emailSubscriber.count({
       where: {
         workspaceId,
@@ -42,14 +42,14 @@ export class EmailAnalyticsService {
     const unsubscribeRate = delivered > 0 ? (unsubscribed / delivered) * 100 : 0;
 
     // Device breakdown from opens
-    const allOpens = logs.flatMap((l) => l.opens);
+    const allOpens = logs.flatMap((l: any) => l.opens);
     const deviceBreakdown = this.countByField(allOpens, 'deviceType');
 
     // OS breakdown from opens
     const osBreakdown = this.countByField(allOpens, 'os');
 
     // Top clicked URLs
-    const allClicks = logs.flatMap((l) => l.clicks);
+    const allClicks = logs.flatMap((l: any) => l.clicks);
     const urlCounts: Record<string, number> = {};
     for (const click of allClicks) {
       urlCounts[click.url] = (urlCounts[click.url] ?? 0) + 1;

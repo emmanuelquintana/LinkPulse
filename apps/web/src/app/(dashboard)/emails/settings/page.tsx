@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fetchApi } from '@/lib/api';
 import {
@@ -16,6 +16,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslation } from '@/i18n/I18nProvider';
+import { sileo } from 'sileo';
 
 interface Workspace { id: string; name: string }
 interface EmailSettings {
@@ -43,7 +45,8 @@ const PROVIDER_PRESETS: Record<string, Partial<EmailSettings>> = {
   Otro: {},
 };
 
-export default function EmailSettingsPage() {
+function EmailSettingsContent() {
+  const t = useTranslation();
   const searchParams = useSearchParams();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState(searchParams.get('workspaceId') ?? '');
@@ -122,7 +125,7 @@ export default function EmailSettingsPage() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: any) {
-      alert(err.message || 'Failed to save settings');
+      sileo.error({ title: t.emailSettings.saveError, description: err.message });
     } finally {
       setSaving(false);
     }
@@ -139,7 +142,7 @@ export default function EmailSettingsPage() {
       });
       setTestResult(data.data || data);
     } catch (err: any) {
-      setTestResult({ success: false, message: err.message || 'Failed' });
+      setTestResult({ success: false, message: err.message || t.emailSettings.testFailed });
     } finally {
       setTesting(false);
     }
@@ -151,15 +154,15 @@ export default function EmailSettingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm text-gray-400 mb-1">
-            <Link href="/emails" className="hover:text-indigo-600 transition-colors">Email Campaigns</Link>
+            <Link href="/emails" className="hover:text-indigo-600 transition-colors">{t.emailSettings.breadcrumb}</Link>
             <span>/</span>
-            <span>Settings</span>
+            <span>{t.emailSettings.settings}</span>
           </div>
           <h1 className="text-2xl font-extrabold text-gray-900 flex items-center gap-3">
             <Settings className="w-6 h-6 text-indigo-600" />
-            Email Settings
+            {t.emailSettings.title}
           </h1>
-          <p className="text-gray-400 text-sm mt-1">Configure how LinkPulse sends emails for this workspace.</p>
+          <p className="text-gray-400 text-sm mt-1">{t.emailSettings.subtitle}</p>
         </div>
         <select
           value={selectedWorkspace}
@@ -172,7 +175,7 @@ export default function EmailSettingsPage() {
 
       {/* Provider Toggle */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <h2 className="text-base font-bold text-gray-900 mb-4">Sending method</h2>
+        <h2 className="text-base font-bold text-gray-900 mb-4">{t.emailSettings.sendingMethod}</h2>
         <div className="grid grid-cols-2 gap-3">
           {(['SMTP', 'RESEND'] as const).map((p) => (
             <button
@@ -186,9 +189,9 @@ export default function EmailSettingsPage() {
               }`}
             >
               {p === 'SMTP' ? <Server className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
-              {p === 'SMTP' ? 'Custom SMTP' : 'Resend API'}
+              {p === 'SMTP' ? t.emailSettings.customSmtp : t.emailSettings.resendApi}
               <span className="text-xs font-normal text-center">
-                {p === 'SMTP' ? 'Hostinger, Gmail, Outlook…' : 'resend.com (free tier available)'}
+                {p === 'SMTP' ? t.emailSettings.smtpProviders : t.emailSettings.resendFreeTier}
               </span>
             </button>
           ))}
@@ -202,7 +205,7 @@ export default function EmailSettingsPage() {
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <Server className="w-4 h-4 text-indigo-600" />
-                SMTP Configuration
+                {t.emailSettings.smtpConfiguration}
               </h2>
 
               {/* Quick preset selector */}
@@ -222,12 +225,12 @@ export default function EmailSettingsPage() {
 
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 text-sm text-amber-700">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>For Hostinger: use your full email as username and your email account password. Enable SSL/TLS (port 465).</span>
+              <span>{t.emailSettings.hostingerHint}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">SMTP Host</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t.emailSettings.smtpHost}</label>
                 <input
                   value={form.smtpHost}
                   onChange={(e) => setForm({ ...form, smtpHost: e.target.value })}
@@ -236,7 +239,7 @@ export default function EmailSettingsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Port</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t.emailSettings.port}</label>
                 <input
                   type="number"
                   value={form.smtpPort}
@@ -256,7 +259,7 @@ export default function EmailSettingsPage() {
                 </label>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Username / Email</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t.emailSettings.usernameEmail}</label>
                 <input
                   value={form.smtpUser}
                   onChange={(e) => setForm({ ...form, smtpUser: e.target.value })}
@@ -265,7 +268,7 @@ export default function EmailSettingsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Password</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t.emailSettings.passwordLabel}</label>
                 <div className="relative">
                   <input
                     type={showPass ? 'text' : 'password'}
@@ -288,13 +291,13 @@ export default function EmailSettingsPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Mail className="w-4 h-4 text-indigo-600" />
-              Resend Configuration
+              {t.emailSettings.resendConfiguration}
             </h2>
             <p className="text-sm text-gray-500 mb-4">
-              Set your Resend API key in the <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">.env</code> file as <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">RESEND_API_KEY</code>.
+              {t.emailSettings.resendEnvHint1} <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">.env</code> {t.emailSettings.resendEnvHint2} <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">RESEND_API_KEY</code>.
             </p>
             <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-sm text-indigo-700">
-              Get your free API key at <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="font-bold underline">resend.com</a> — 3,000 emails/month free.
+              {t.emailSettings.resendApiKeyCta} <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="font-bold underline">resend.com</a> {t.emailSettings.resendApiKeyTail}
             </div>
           </div>
         )}
@@ -303,21 +306,21 @@ export default function EmailSettingsPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
           <h2 className="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
             <Mail className="w-4 h-4 text-indigo-600" />
-            Default Sender
+            {t.emailSettings.defaultSender}
           </h2>
-          <p className="text-xs text-gray-400 -mt-3">These will be used as defaults when sending campaigns.</p>
+          <p className="text-xs text-gray-400 -mt-3">{t.emailSettings.defaultSenderHint}</p>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">From Name</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t.emailSettings.fromName}</label>
               <input
                 value={form.fromName}
                 onChange={(e) => setForm({ ...form, fromName: e.target.value })}
-                placeholder="My Company"
+                placeholder={t.emailSettings.fromNamePlaceholder}
                 className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">From Email</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{t.emailSettings.fromEmail}</label>
               <input
                 type="email"
                 value={form.fromEmail}
@@ -335,9 +338,9 @@ export default function EmailSettingsPage() {
             disabled={saving}
             className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-md shadow-indigo-100"
           >
-            {saving ? 'Saving…' : saveSuccess ? (
-              <><CheckCircle className="w-4 h-4" /> Saved!</>
-            ) : 'Save Settings'}
+            {saving ? t.common.saving : saveSuccess ? (
+              <><CheckCircle className="w-4 h-4" /> {t.emailSettings.saved}</>
+            ) : t.emailSettings.saveSettings}
           </button>
         </div>
       </form>
@@ -346,9 +349,9 @@ export default function EmailSettingsPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <h2 className="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
           <Send className="w-4 h-4 text-indigo-600" />
-          Send Test Email
+          {t.emailSettings.sendTestEmail}
         </h2>
-        <p className="text-xs text-gray-400 mb-4">Verify your configuration is working correctly.</p>
+        <p className="text-xs text-gray-400 mb-4">{t.emailSettings.testHint}</p>
         <div className="flex gap-3">
           <input
             type="email"
@@ -363,7 +366,7 @@ export default function EmailSettingsPage() {
             className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-700 disabled:opacity-50 transition-all"
           >
             <Send className="w-4 h-4" />
-            {testing ? 'Sending…' : 'Send Test'}
+            {testing ? t.emails.sendingShort : t.emailSettings.sendTest}
           </button>
         </div>
         {testResult && (
@@ -374,5 +377,13 @@ export default function EmailSettingsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EmailSettingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <EmailSettingsContent />
+    </Suspense>
   );
 }
