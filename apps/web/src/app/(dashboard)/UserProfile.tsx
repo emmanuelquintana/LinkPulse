@@ -6,10 +6,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { useTranslation } from '@/i18n/I18nProvider';
+import type { Profile } from '@/types/models';
 
 export function UserProfile() {
   const t = useTranslation();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -28,9 +29,10 @@ export function UserProfile() {
     }
     loadProfile();
 
-    const handleUpdate = (event: any) => {
-      if (event.detail) {
-        setProfile(event.detail);
+    const handleUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<Profile>).detail;
+      if (detail) {
+        setProfile(detail);
       }
     };
 

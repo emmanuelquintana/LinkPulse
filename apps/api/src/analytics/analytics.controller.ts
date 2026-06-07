@@ -1,6 +1,6 @@
 import { Controller, Get, UseGuards, Req, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard.js';
 import { AnalyticsService } from './analytics.service.js';
 
@@ -14,7 +14,7 @@ export class AnalyticsController {
   @Get('clicks')
   @ApiOperation({ summary: 'Get daily clicks for a period' })
   getClicksPerDay(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Query('days') days?: string
   ) {
     const userId = req.user?.sub;

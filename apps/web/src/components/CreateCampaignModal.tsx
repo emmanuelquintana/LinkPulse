@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { fetchApi } from "@/lib/api";
+import { fetchApi, getErrorMessage } from "@/lib/api";
 import { useTranslation } from "@/i18n/I18nProvider";
+import { sileo } from "sileo";
 
 interface CreateCampaignModalProps {
   isOpen: boolean;
@@ -40,12 +41,13 @@ export default function CreateCampaignModal({
         }),
       });
       window.dispatchEvent(new Event("notifications-updated"));
+      sileo.success({ title: t.toasts.campaignCreated });
       onSuccess();
       onClose();
       setName("");
       setDescription("");
-    } catch (err: any) {
-      setError(err.message || t.modals.campaignCreateError);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || t.modals.campaignCreateError);
     } finally {
       setLoading(false);
     }

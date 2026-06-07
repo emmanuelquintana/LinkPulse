@@ -23,7 +23,7 @@ export class EmailCampaignsService {
     if (!member) throw new ForbiddenException('You do not have access to this workspace');
   }
 
-  async create(userId: string, dto: CreateEmailCampaignDto): Promise<any> {
+  async create(userId: string, dto: CreateEmailCampaignDto) {
     await this.assertWorkspaceMember(userId, dto.workspaceId);
 
     return this.prisma.emailCampaign.create({
@@ -42,7 +42,7 @@ export class EmailCampaignsService {
     });
   }
 
-  async findAll(userId: string, workspaceId: string, pagination: PaginationQueryDto): Promise<any> {
+  async findAll(userId: string, workspaceId: string, pagination: PaginationQueryDto) {
     await this.assertWorkspaceMember(userId, workspaceId);
 
     const page = pagination.page ?? 1;
@@ -62,7 +62,7 @@ export class EmailCampaignsService {
     return { items, page, size, elements };
   }
 
-  async findOne(userId: string, workspaceId: string, id: string): Promise<any> {
+  async findOne(userId: string, workspaceId: string, id: string) {
     await this.assertWorkspaceMember(userId, workspaceId);
 
     const campaign = await this.prisma.emailCampaign.findFirst({
@@ -72,7 +72,7 @@ export class EmailCampaignsService {
     return campaign;
   }
 
-  async update(userId: string, workspaceId: string, id: string, dto: Partial<CreateEmailCampaignDto>): Promise<any> {
+  async update(userId: string, workspaceId: string, id: string, dto: Partial<CreateEmailCampaignDto>) {
     await this.assertWorkspaceMember(userId, workspaceId);
 
     const campaign = await this.prisma.emailCampaign.findFirst({ where: { id, workspaceId } });

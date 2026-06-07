@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum WorkspacePlan {
@@ -64,13 +65,14 @@ model Workspace {
   id                   String            @id @default(uuid()) @db.Uuid
   name                 String
   ownerUserId          String            @db.Uuid
-  plan                 WorkspacePlan     @default(FREE)
+  plan                 WorkspacePlan     @default(PRO)
   stripeCustomerId     String?           @unique @map("stripe_customer_id")
   stripeSubscriptionId String?           @unique @map("stripe_subscription_id")
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   owner                Profile           @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
   members              WorkspaceMember[]
+  invitations          WorkspaceInvitation[]
   links                Link[]
   campaigns            Campaign[]
   subscription         Subscription?
@@ -85,17 +87,46 @@ model Workspace {
 }
 
 model WorkspaceMember {
-  id          String        @id @default(uuid()) @db.Uuid
-  workspaceId String        @db.Uuid
-  userId      String        @db.Uuid
-  role        WorkspaceRole @default(MEMBER)
-  createdAt   DateTime      @default(now())
-  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user        Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String        @id @default(uuid()) @db.Uuid
+  workspaceId      String        @db.Uuid
+  userId           String        @db.Uuid
+  role             WorkspaceRole @default(MEMBER)
+  canManageLinks   Boolean       @default(true) @map("can_manage_links")
+  canManageEmails  Boolean       @default(false) @map("can_manage_emails")
+  canViewAnalytics Boolean       @default(true) @map("can_view_analytics")
+  canManageMembers Boolean       @default(false) @map("can_manage_members")
+  canManageBilling Boolean       @default(false) @map("can_manage_billing")
+  createdAt        DateTime      @default(now())
+  workspace        Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user             Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, userId])
   @@index([userId])
   @@map("workspace_members")
+}
+
+model WorkspaceInvitation {
+  id               String        @id @default(uuid()) @db.Uuid
+  workspaceId      String        @db.Uuid
+  email            String
+  role             WorkspaceRole @default(MEMBER)
+  canManageLinks   Boolean       @default(true) @map("can_manage_links")
+  canManageEmails  Boolean       @default(false) @map("can_manage_emails")
+  canViewAnalytics Boolean       @default(true) @map("can_view_analytics")
+  canManageMembers Boolean       @default(false) @map("can_manage_members")
+  canManageBilling Boolean       @default(false) @map("can_manage_billing")
+  token            String        @unique @default(uuid()) @db.Uuid
+  invitedById      String?       @db.Uuid
+  status           String        @default("PENDING") // PENDING, ACCEPTED, REVOKED
+  acceptedAt       DateTime?     @map("accepted_at")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  workspace        Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email])
+  @@index([email])
+  @@index([workspaceId])
+  @@map("workspace_invitations")
 }
 
 model Campaign {

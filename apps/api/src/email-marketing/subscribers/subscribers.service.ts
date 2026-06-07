@@ -4,9 +4,15 @@ import {
   ConflictException,
   ForbiddenException,
 } from '@nestjs/common';
+import { Prisma } from '@linkpulse/db';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateSubscriberDto } from '../dto/create-subscriber.dto.js';
 import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto.js';
+import type { PaginatedResult } from '../../shared/types/paginated-result.js';
+
+export type SubscriberWithTags = Prisma.EmailSubscriberGetPayload<{
+  include: { tags: true };
+}>;
 
 @Injectable()
 export class SubscribersService {
@@ -21,7 +27,7 @@ export class SubscribersService {
     }
   }
 
-  async create(userId: string, dto: CreateSubscriberDto): Promise<any> {
+  async create(userId: string, dto: CreateSubscriberDto): Promise<SubscriberWithTags> {
     await this.assertWorkspaceMember(userId, dto.workspaceId);
 
     const existing = await this.prisma.emailSubscriber.findUnique({
@@ -45,7 +51,11 @@ export class SubscribersService {
     });
   }
 
-  async findAll(userId: string, workspaceId: string, pagination: PaginationQueryDto): Promise<any> {
+  async findAll(
+    userId: string,
+    workspaceId: string,
+    pagination: PaginationQueryDto,
+  ): Promise<PaginatedResult<SubscriberWithTags>> {
     await this.assertWorkspaceMember(userId, workspaceId);
 
     const page = pagination.page ?? 1;
@@ -66,7 +76,7 @@ export class SubscribersService {
     return { items, page, size, elements };
   }
 
-  async findOne(userId: string, workspaceId: string, id: string): Promise<any> {
+  async findOne(userId: string, workspaceId: string, id: string): Promise<SubscriberWithTags> {
     await this.assertWorkspaceMember(userId, workspaceId);
 
     const subscriber = await this.prisma.emailSubscriber.findFirst({
@@ -77,7 +87,12 @@ export class SubscribersService {
     return subscriber;
   }
 
-  async update(userId: string, workspaceId: string, id: string, data: Partial<CreateSubscriberDto>): Promise<any> {
+  async update(
+    userId: string,
+    workspaceId: string,
+    id: string,
+    data: Partial<CreateSubscriberDto>,
+  ): Promise<SubscriberWithTags> {
     await this.assertWorkspaceMember(userId, workspaceId);
 
     const subscriber = await this.prisma.emailSubscriber.findFirst({

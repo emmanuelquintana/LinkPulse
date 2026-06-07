@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage } from '@/lib/api';
 import { useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/i18n/I18nProvider';
 import { sileo } from 'sileo';
+import type { WorkspaceSummary } from '@/types/models';
 
 function BillingContent() {
   const t = useTranslation();
-  const [workspaces, setWorkspaces] = useState<any[]>([]);
+  const [workspaces, setWorkspaces] = useState<WorkspaceSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
   const [processing, setProcessing] = useState(false);
@@ -58,7 +59,7 @@ function BillingContent() {
       }
     } catch (err) {
       console.error("Failed to start checkout", err);
-      sileo.error({ title: t.billing.checkoutError, description: (err as any)?.message });
+      sileo.error({ title: t.billing.checkoutError, description: getErrorMessage(err) });
     } finally {
       setProcessing(false);
     }
@@ -81,7 +82,7 @@ function BillingContent() {
       }
     } catch (err) {
       console.error("Failed to open portal", err);
-      sileo.error({ title: t.billing.portalError, description: (err as any)?.message });
+      sileo.error({ title: t.billing.portalError, description: getErrorMessage(err) });
     } finally {
       setProcessing(false);
     }

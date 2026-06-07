@@ -18,6 +18,21 @@ export class WorkspaceMemberDto {
   @ApiProperty({ description: 'When the member was added' })
   createdAt!: Date;
 
+  @ApiProperty({ description: 'Crear, editar y archivar links' })
+  canManageLinks!: boolean;
+
+  @ApiProperty({ description: 'Gestionar email marketing y suscriptores' })
+  canManageEmails!: boolean;
+
+  @ApiProperty({ description: 'Ver analíticas y reportes' })
+  canViewAnalytics!: boolean;
+
+  @ApiProperty({ description: 'Invitar, editar y eliminar miembros' })
+  canManageMembers!: boolean;
+
+  @ApiProperty({ description: 'Gestionar el plan y la facturación' })
+  canManageBilling!: boolean;
+
   @ApiPropertyOptional({ type: () => ProfileDto, description: 'Profile details of the member' })
   user?: ProfileDto;
 }

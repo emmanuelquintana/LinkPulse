@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { fetchApi } from "@/lib/api";
+import { fetchApi, getErrorMessage } from "@/lib/api";
 import Link from "next/link";
 import { useTranslation } from "@/i18n/I18nProvider";
+import { sileo } from "sileo";
+import type { CampaignSummary } from "@/types/models";
 
 interface Workspace {
   id: string;
@@ -17,7 +19,7 @@ export default function CreateLinkPage() {
 
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState("");
-  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState("");
 
   const [destination, setDestination] = useState("");
@@ -91,10 +93,11 @@ export default function CreateLinkPage() {
         }),
       });
       window.dispatchEvent(new Event("notifications-updated"));
+      sileo.success({ title: t.toasts.linkCreated });
       // Route back to the links table
       router.push("/dashboard/links");
-    } catch (err: any) {
-      setError(err.message || t.createLink.createError);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || t.createLink.createError);
     } finally {
       setCreating(false);
     }

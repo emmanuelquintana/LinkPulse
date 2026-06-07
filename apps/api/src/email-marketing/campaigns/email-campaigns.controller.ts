@@ -10,11 +10,11 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request.js';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard.js';
 import { EmailCampaignsService } from './email-campaigns.service.js';
 import { CreateEmailCampaignDto } from '../dto/create-email-campaign.dto.js';
-import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto.js';
+import { WorkspacePaginationQueryDto } from '../../shared/dto/workspace-pagination-query.dto.js';
 
 @ApiTags('email-marketing / campaigns')
 @ApiBearerAuth()
@@ -25,24 +25,23 @@ export class EmailCampaignsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a draft email campaign' })
-  create(@Req() req: Request & { user?: any }, @Body() dto: CreateEmailCampaignDto) {
+  create(@Req() req: AuthenticatedRequest, @Body() dto: CreateEmailCampaignDto) {
     return this.campaignsService.create(req.user?.sub, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'List email campaigns for a workspace' })
   findAll(
-    @Req() req: Request & { user?: any },
-    @Query('workspaceId') workspaceId: string,
-    @Query() pagination: PaginationQueryDto,
+    @Req() req: AuthenticatedRequest,
+    @Query() query: WorkspacePaginationQueryDto,
   ) {
-    return this.campaignsService.findAll(req.user?.sub, workspaceId, pagination);
+    return this.campaignsService.findAll(req.user.sub, query.workspaceId, query);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific email campaign' })
   findOne(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Query('workspaceId') workspaceId: string,
     @Param('id') id: string,
   ) {
@@ -52,7 +51,7 @@ export class EmailCampaignsController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update a draft email campaign' })
   update(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Query('workspaceId') workspaceId: string,
     @Param('id') id: string,
     @Body() dto: Partial<CreateEmailCampaignDto>,
@@ -63,7 +62,7 @@ export class EmailCampaignsController {
   @Post(':id/send')
   @ApiOperation({ summary: 'Send an email campaign to all active subscribers' })
   send(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Query('workspaceId') workspaceId: string,
     @Param('id') id: string,
   ) {

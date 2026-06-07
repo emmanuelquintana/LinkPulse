@@ -3,10 +3,21 @@ import {
   NotFoundException,
   ForbiddenException,
 } from "@nestjs/common";
+import { Prisma } from "@linkpulse/db";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto.js";
 import { ProfilesService } from "../profiles/profiles.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
+import { EmailSenderService } from "../email-marketing/campaigns/email-sender.service.js";
+import { invitationEmailTemplate } from "../email-marketing/templates/email-templates.js";
+import { WorkspaceAccessService } from "./workspace-access.service.js";
+import {
+  defaultPermissionsForRole,
+  WORKSPACE_PERMISSIONS,
+  type WorkspacePermission,
+} from "./workspace-permissions.js";
+
+type PermissionOverrides = Partial<Record<WorkspacePermission, boolean>>;
 
 @Injectable()
 export class WorkspacesService {
@@ -14,7 +25,21 @@ export class WorkspacesService {
     private readonly prisma: PrismaService,
     private readonly profilesService: ProfilesService,
     private readonly notificationsService: NotificationsService,
+    private readonly access: WorkspaceAccessService,
+    private readonly emailSender: EmailSenderService,
   ) {}
+
+  /** Filtra un objeto de overrides dejando sólo claves de permiso válidas. */
+  private sanitizePermissions(overrides?: PermissionOverrides) {
+    const clean: PermissionOverrides = {};
+    if (!overrides) return clean;
+    for (const key of WORKSPACE_PERMISSIONS) {
+      if (typeof overrides[key] === "boolean") {
+        clean[key] = overrides[key];
+      }
+    }
+    return clean;
+  }
 
   async createWorkspace(
     userId: string,
@@ -35,6 +60,7 @@ export class WorkspacesService {
             create: {
               userId,
               role: "OWNER",
+              ...defaultPermissionsForRole("OWNER"),
             },
           },
         },
@@ -76,6 +102,39 @@ export class WorkspacesService {
     });
   }
 
+  /**
+   * Permisos efectivos del usuario, agregados sobre TODAS sus membresías
+   * (OR por permiso). Un OWNER en cualquier workspace obtiene todo. Sirve para
+   * que el frontend muestre/oculte secciones del menú.
+   */
+  async getEffectivePermissions(userId: string) {
+    const memberships = await this.prisma.workspaceMember.findMany({
+      where: { userId },
+    });
+
+    const agg: Record<WorkspacePermission, boolean> = {
+      canManageLinks: false,
+      canManageEmails: false,
+      canViewAnalytics: false,
+      canManageMembers: false,
+      canManageBilling: false,
+    };
+    let isOwnerAnywhere = false;
+
+    for (const m of memberships) {
+      if (m.role === "OWNER") {
+        isOwnerAnywhere = true;
+        for (const key of WORKSPACE_PERMISSIONS) agg[key] = true;
+        continue;
+      }
+      for (const key of WORKSPACE_PERMISSIONS) {
+        if (m[key]) agg[key] = true;
+      }
+    }
+
+    return { ...agg, isOwnerAnywhere, workspaceCount: memberships.length };
+  }
+
   async getWorkspaceById(userId: string, workspaceId: string) {
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
@@ -85,6 +144,10 @@ export class WorkspacesService {
           include: {
             user: true,
           },
+        },
+        invitations: {
+          where: { status: "PENDING" },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
@@ -106,62 +169,189 @@ export class WorkspacesService {
     workspaceId: string,
     email: string,
     role: "ADMIN" | "MEMBER",
+    permissions?: PermissionOverrides,
   ) {
-    // 1. Verify the current user is OWNER or ADMIN
-    const workspace = await this.getWorkspaceById(userId, workspaceId);
-
-    const currentUserMembership = workspace.members.find(
-      (m) => m.userId === userId,
-    );
-    if (
-      !currentUserMembership ||
-      (currentUserMembership.role !== "OWNER" &&
-        currentUserMembership.role !== "ADMIN")
-    ) {
-      throw new ForbiddenException("Only owners and admins can add members");
-    }
-
-    // 2. Find the user being invited by email
-    const userToAdd = await this.prisma.profile.findUnique({
-      where: { email },
+    // 1. El usuario actual necesita el permiso de gestionar miembros.
+    await this.access.assertPermission(userId, workspaceId, "canManageMembers");
+    const workspace = await this.prisma.workspace.findUniqueOrThrow({
+      where: { id: workspaceId },
     });
 
-    if (!userToAdd) {
-      throw new NotFoundException(`User with email ${email} not found`);
-    }
+    const normalizedEmail = email.trim().toLowerCase();
 
-    // 3. Add the member
-    try {
-      const membership = await this.prisma.workspaceMember.create({
-        data: {
+    // 2. Permisos: defaults por rol, sobreescritos por los overrides explícitos.
+    const resolvedPermissions = {
+      ...defaultPermissionsForRole(role),
+      ...this.sanitizePermissions(permissions),
+    };
+
+    // 3. ¿Ya tiene cuenta? Si existe el perfil, se añade como miembro al instante.
+    const existingProfile = await this.prisma.profile.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (existingProfile) {
+      try {
+        const membership = await this.prisma.workspaceMember.create({
+          data: {
+            workspaceId,
+            userId: existingProfile.id,
+            role,
+            ...resolvedPermissions,
+          },
+          include: { user: true },
+        });
+
+        await this.notificationsService.createForUser({
+          userId: existingProfile.id,
           workspaceId,
-          userId: userToAdd.id,
-          role,
-        },
-        include: {
-          user: true,
-        },
-      });
+          type: "MEMBER_ADDED",
+          title: "Added to workspace",
+          body: `You were added to ${workspace.name} as ${role.toLowerCase()}.`,
+          href: "/dashboard/workspaces",
+        });
 
-      await this.notificationsService.createForUser({
-        userId: userToAdd.id,
-        workspaceId,
-        type: "MEMBER_ADDED",
-        title: "Added to workspace",
-        body: `You were added to ${workspace.name} as ${role.toLowerCase()}.`,
-        href: "/dashboard/workspaces",
-      });
-
-      return membership;
-    } catch (error: any) {
-      if (error.code === "P2002") {
-        // Unique constraint violation in Prisma
-        throw new ForbiddenException(
-          "User is already a member of this workspace",
-        );
+        return { status: "added" as const, member: membership };
+      } catch (error: unknown) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          throw new ForbiddenException(
+            "User is already a member of this workspace",
+          );
+        }
+        throw error;
       }
-      throw error;
     }
+
+    // 4. No tiene cuenta: se crea (o actualiza) una invitación pendiente.
+    const invitation = await this.prisma.workspaceInvitation.upsert({
+      where: {
+        workspaceId_email: { workspaceId, email: normalizedEmail },
+      },
+      create: {
+        workspaceId,
+        email: normalizedEmail,
+        role,
+        invitedById: userId,
+        status: "PENDING",
+        ...resolvedPermissions,
+      },
+      update: {
+        role,
+        invitedById: userId,
+        status: "PENDING",
+        acceptedAt: null,
+        ...resolvedPermissions,
+      },
+    });
+
+    // 5. Email de invitación (best-effort: no bloquea si el envío falla).
+    const inviter = await this.prisma.profile.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true },
+    });
+    const inviterName = [inviter?.firstName, inviter?.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    await this.sendInvitationEmail(
+      invitation.email,
+      workspace.name,
+      inviterName || undefined,
+    );
+
+    return { status: "invited" as const, invitation };
+  }
+
+  private async sendInvitationEmail(
+    email: string,
+    workspaceName: string,
+    inviterName?: string,
+  ) {
+    const appUrl = process.env.APP_URL ?? "http://localhost:3000";
+    const registerUrl = `${appUrl.replace(/\/$/, "")}/register?email=${encodeURIComponent(email)}`;
+    const fromEmail = process.env.MAIL_FROM_EMAIL ?? "no-reply@linkpulse.app";
+    const fromName = process.env.MAIL_FROM_NAME ?? "LinkPulse";
+
+    const { subject, html } = invitationEmailTemplate({
+      workspaceName,
+      inviteeEmail: email,
+      registerUrl,
+      inviterName,
+    });
+
+    try {
+      await this.emailSender.send({ to: email, from: fromEmail, fromName, subject, html });
+    } catch {
+      // El envío es best-effort: la invitación queda creada y se acepta al registrarse.
+    }
+  }
+
+  async revokeInvitation(
+    userId: string,
+    workspaceId: string,
+    invitationId: string,
+  ) {
+    await this.access.assertPermission(userId, workspaceId, "canManageMembers");
+
+    const invitation = await this.prisma.workspaceInvitation.findUnique({
+      where: { id: invitationId },
+    });
+    if (!invitation || invitation.workspaceId !== workspaceId) {
+      throw new NotFoundException("Invitation not found in this workspace");
+    }
+
+    await this.prisma.workspaceInvitation.delete({ where: { id: invitationId } });
+    return { id: invitationId, revoked: true };
+  }
+
+  async updateMember(
+    userId: string,
+    workspaceId: string,
+    memberId: string,
+    data: { role?: "ADMIN" | "MEMBER"; permissions?: PermissionOverrides },
+  ) {
+    await this.access.assertPermission(userId, workspaceId, "canManageMembers");
+
+    const member = await this.prisma.workspaceMember.findUnique({
+      where: { id: memberId },
+    });
+    if (!member || member.workspaceId !== workspaceId) {
+      throw new NotFoundException("Member not found in this workspace");
+    }
+    if (member.role === "OWNER") {
+      throw new ForbiddenException("The workspace owner cannot be modified");
+    }
+
+    const updated = await this.prisma.workspaceMember.update({
+      where: { id: memberId },
+      data: {
+        ...(data.role ? { role: data.role } : {}),
+        ...this.sanitizePermissions(data.permissions),
+      },
+      include: { user: true },
+    });
+
+    return updated;
+  }
+
+  async removeMember(userId: string, workspaceId: string, memberId: string) {
+    await this.access.assertPermission(userId, workspaceId, "canManageMembers");
+
+    const member = await this.prisma.workspaceMember.findUnique({
+      where: { id: memberId },
+    });
+    if (!member || member.workspaceId !== workspaceId) {
+      throw new NotFoundException("Member not found in this workspace");
+    }
+    if (member.role === "OWNER") {
+      throw new ForbiddenException("The workspace owner cannot be removed");
+    }
+
+    await this.prisma.workspaceMember.delete({ where: { id: memberId } });
+    return { id: memberId, removed: true };
   }
 
   async updateWorkspace(

@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage } from '@/lib/api';
 import { useTranslation } from '@/i18n/I18nProvider';
+import { sileo } from 'sileo';
 
 interface Campaign {
   id: string;
@@ -74,10 +75,11 @@ export default function EditLinkModal({ isOpen, onClose, link, onSuccess }: Edit
           campaignId: campaignId || null,
         }),
       });
+      sileo.success({ title: t.toasts.linkUpdated });
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.message || t.modals.linkUpdateError);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || t.modals.linkUpdateError);
     } finally {
       setLoading(false);
     }

@@ -14,11 +14,12 @@ import { maskData, maskObject } from '../utils/obfuscation.js';
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger('HTTP');
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const ctx = context.switchToHttp();
     const request = ctx.getRequest<Request & { traceId?: string }>();
     const response = ctx.getResponse<Response>();
-    const { method, url, body } = request;
+    const { method, url } = request;
+    const body = request.body as Record<string, unknown> | undefined;
     const traceId = request.traceId || 'unknown';
     const now = Date.now();
 

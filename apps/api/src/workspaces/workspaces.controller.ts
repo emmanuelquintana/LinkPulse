@@ -1,10 +1,11 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
-import { Request } from 'express';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 import { WorkspacesService } from './workspaces.service.js';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto.js';
 import { WorkspaceDto } from './dto/workspace.dto.js';
 import { AddWorkspaceMemberDto } from './dto/add-workspace-member.dto.js';
+import { UpdateWorkspaceMemberDto } from './dto/update-workspace-member.dto.js';
 import { WorkspaceMemberDto } from './dto/workspace-member.dto.js';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard.js';
 import { ApiOkResponseWrapped } from '../shared/response/api-ok-response-wrapped.js';
@@ -23,20 +24,27 @@ export class WorkspacesController {
   @ApiOperation({ summary: 'Create a new workspace' })
   @ApiOkResponseWrapped(WorkspaceDto)
   createWorkspace(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Body() dto: CreateWorkspaceDto,
   ) {
     const userId = req.user?.sub;
-    const email = req.user?.email;
+    const email = req.user?.email ?? '';
     return this.workspacesService.createWorkspace(userId, email, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all workspaces for the current user' })
   @ApiOkResponseWrappedArray(WorkspaceDto)
-  getUserWorkspaces(@Req() req: Request & { user?: any }) {
+  getUserWorkspaces(@Req() req: AuthenticatedRequest) {
     const userId = req.user?.sub;
     return this.workspacesService.getUserWorkspaces(userId);
+  }
+
+  @Get('me/permissions')
+  @ApiOperation({ summary: 'Get effective permissions for the current user' })
+  getMyPermissions(@Req() req: AuthenticatedRequest) {
+    const userId = req.user?.sub;
+    return this.workspacesService.getEffectivePermissions(userId);
   }
 
   @Get(':id')
@@ -44,7 +52,7 @@ export class WorkspacesController {
   @ApiParam({ name: 'id', description: 'Workspace UUID' })
   @ApiOkResponseWrapped(WorkspaceDto)
   getWorkspaceById(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Param('id') workspaceId: string,
   ) {
     const userId = req.user?.sub;
@@ -56,12 +64,62 @@ export class WorkspacesController {
   @ApiParam({ name: 'id', description: 'Workspace UUID' })
   @ApiOkResponseWrapped(WorkspaceMemberDto)
   addWorkspaceMember(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Param('id') workspaceId: string,
     @Body() dto: AddWorkspaceMemberDto,
   ) {
     const userId = req.user?.sub;
-    return this.workspacesService.addMember(userId, workspaceId, dto.email, dto.role as 'ADMIN' | 'MEMBER');
+    return this.workspacesService.addMember(
+      userId,
+      workspaceId,
+      dto.email,
+      dto.role as 'ADMIN' | 'MEMBER',
+      dto.permissions,
+    );
+  }
+
+  @Patch(':id/members/:memberId')
+  @ApiOperation({ summary: 'Update a member role or permissions' })
+  @ApiParam({ name: 'id', description: 'Workspace UUID' })
+  @ApiParam({ name: 'memberId', description: 'Membership UUID' })
+  @ApiOkResponseWrapped(WorkspaceMemberDto)
+  updateWorkspaceMember(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') workspaceId: string,
+    @Param('memberId') memberId: string,
+    @Body() dto: UpdateWorkspaceMemberDto,
+  ) {
+    const userId = req.user?.sub;
+    return this.workspacesService.updateMember(userId, workspaceId, memberId, {
+      role: dto.role as 'ADMIN' | 'MEMBER' | undefined,
+      permissions: dto.permissions,
+    });
+  }
+
+  @Delete(':id/members/:memberId')
+  @ApiOperation({ summary: 'Remove a member from the workspace' })
+  @ApiParam({ name: 'id', description: 'Workspace UUID' })
+  @ApiParam({ name: 'memberId', description: 'Membership UUID' })
+  removeWorkspaceMember(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') workspaceId: string,
+    @Param('memberId') memberId: string,
+  ) {
+    const userId = req.user?.sub;
+    return this.workspacesService.removeMember(userId, workspaceId, memberId);
+  }
+
+  @Delete(':id/invitations/:invitationId')
+  @ApiOperation({ summary: 'Revoke a pending invitation' })
+  @ApiParam({ name: 'id', description: 'Workspace UUID' })
+  @ApiParam({ name: 'invitationId', description: 'Invitation UUID' })
+  revokeInvitation(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') workspaceId: string,
+    @Param('invitationId') invitationId: string,
+  ) {
+    const userId = req.user?.sub;
+    return this.workspacesService.revokeInvitation(userId, workspaceId, invitationId);
   }
 
   @Patch(':id')
@@ -69,7 +127,7 @@ export class WorkspacesController {
   @ApiParam({ name: 'id', description: 'Workspace UUID' })
   @ApiOkResponseWrapped(WorkspaceDto)
   updateWorkspace(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Param('id') workspaceId: string,
     @Body() dto: UpdateWorkspaceDto,
   ) {
@@ -82,7 +140,7 @@ export class WorkspacesController {
   @ApiParam({ name: 'id', description: 'Workspace UUID' })
   @ApiOkResponseWrapped(WorkspaceDto)
   deleteWorkspace(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Param('id') workspaceId: string,
   ) {
     const userId = req.user?.sub;
