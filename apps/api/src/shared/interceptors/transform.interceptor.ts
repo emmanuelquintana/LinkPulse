@@ -16,6 +16,23 @@ interface RequestWithTraceId extends Request {
   traceId?: string;
 }
 
+interface PaginatedShape {
+  items: unknown[];
+  page: number;
+  size?: unknown;
+  elements?: unknown;
+}
+
+/** Detecta la forma `{ items, page, ... }` que devuelven los endpoints paginados. */
+function isPaginatedShape(data: unknown): data is PaginatedShape {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    Array.isArray((data as PaginatedShape).items) &&
+    typeof (data as PaginatedShape).page === "number"
+  );
+}
+
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
   constructor(private readonly reflector: Reflector) { }
@@ -37,7 +54,7 @@ export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T
     const traceId = request.traceId ?? "unknown-trace-id";
 
     return next.handle().pipe(
-      map((data: any) => {
+      map((data: unknown) => {
         if (data instanceof ApiResponse) {
           return data;
         }
@@ -45,24 +62,20 @@ export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T
         const statusCode = response.statusCode ?? 200;
         const customCode = `LP_API_${statusCode}`;
 
-        const builder = ApiResponseBuilder.create<any>()
+        const builder = ApiResponseBuilder.create<unknown>()
           .code(customCode)
           .message("Operation Successful")
           .traceId(traceId);
 
-        if (
-          data &&
-          typeof data === "object" &&
-          Array.isArray(data.items) &&
-          typeof data.page === "number"
-        ) {
+        if (isPaginatedShape(data)) {
+          const items = data.items;
           builder
-            .data(data.items)
+            .data(items)
             .metadata(
               new PaginationMetadata(
                 data.page,
-                data.size ?? data.items.length ?? 0,
-                data.elements ?? data.items.length ?? 0,
+                (data.size as number | undefined) ?? items.length,
+                (data.elements as number | undefined) ?? items.length,
               ),
             );
         } else {

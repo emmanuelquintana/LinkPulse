@@ -102,7 +102,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
             typeof exceptionResponse === "object" &&
             exceptionResponse !== null
         ) {
-            const errorBody = exceptionResponse as Record<string, any>;
+            const errorBody = exceptionResponse as Record<string, unknown>;
 
             if (errorBody.message) {
                 message = Array.isArray(errorBody.message)

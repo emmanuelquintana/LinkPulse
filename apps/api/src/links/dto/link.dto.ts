@@ -4,7 +4,7 @@ export class LinkDto {
   @ApiProperty({ description: 'The unique UUID of the link' })
   id!: string;
 
-  @ApiProperty({ description: 'The workspace ID this link belongs to (if any)' })
+  @ApiProperty({ description: 'The workspace ID this link belongs to, or null' })
   workspaceId!: string | null;
 
   @ApiProperty({ description: 'The ID of the user who created the link' })

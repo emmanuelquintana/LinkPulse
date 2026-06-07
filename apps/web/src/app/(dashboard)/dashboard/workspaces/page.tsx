@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { fetchApi } from "@/lib/api";
+import { fetchApi, getErrorMessage } from "@/lib/api";
 import Link from "next/link";
 import EditWorkspaceModal from "@/components/EditWorkspaceModal";
+import WorkspaceMembersModal from "@/components/WorkspaceMembersModal";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { sileo } from "sileo";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 interface WorkspaceMember {
   id: string;
@@ -26,6 +28,7 @@ interface Workspace {
 
 export default function WorkspacesPage() {
   const t = useTranslation();
+  const confirm = useConfirm();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -39,6 +42,10 @@ export default function WorkspacesPage() {
     null,
   );
   const [showEditModal, setShowEditModal] = useState(false);
+  const [membersWorkspaceId, setMembersWorkspaceId] = useState<string | null>(
+    null,
+  );
+  const [showMembersModal, setShowMembersModal] = useState(false);
 
   const loadWorkspaces = async () => {
     setLoading(true);
@@ -71,11 +78,12 @@ export default function WorkspacesPage() {
         body: JSON.stringify({ name: newWorkspaceName }),
       });
       window.dispatchEvent(new Event("notifications-updated"));
+      sileo.success({ title: t.toasts.workspaceCreated });
       setNewWorkspaceName("");
       setShowCreateModal(false);
       loadWorkspaces();
-    } catch (err: any) {
-      setError(err.message || t.workspaces.createError);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || t.workspaces.createError);
     } finally {
       setCreating(false);
     }
@@ -87,18 +95,28 @@ export default function WorkspacesPage() {
     setOpenMenuId(null);
   };
 
+  const handleManageMembers = (ws: Workspace) => {
+    setMembersWorkspaceId(ws.id);
+    setShowMembersModal(true);
+    setOpenMenuId(null);
+  };
+
   const handleDelete = async (wsId: string) => {
-    if (
-      !confirm(t.workspaces.confirmDelete)
-    )
-      return;
+    const ok = await confirm({
+      title: t.confirmDialog.deleteWorkspaceTitle,
+      description: t.workspaces.confirmDelete,
+      confirmLabel: t.common.delete,
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       await fetchApi(`/workspaces/${wsId}`, { method: "DELETE" });
+      sileo.success({ title: t.toasts.workspaceDeleted });
       loadWorkspaces();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to delete workspace", err);
-      sileo.error({ title: t.workspaces.deleteError, description: err.message });
+      sileo.error({ title: t.workspaces.deleteError, description: getErrorMessage(err) });
     }
     setOpenMenuId(null);
   };
@@ -172,6 +190,15 @@ export default function WorkspacesPage() {
                               edit
                             </span>
                             {t.workspaces.editDetails}
+                          </button>
+                          <button
+                            onClick={() => handleManageMembers(ws)}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">
+                              group
+                            </span>
+                            {t.workspaces.manageMembers}
                           </button>
                           <div className="h-px bg-gray-50 my-1 mx-2" />
                           <button
@@ -335,6 +362,16 @@ export default function WorkspacesPage() {
           }}
           workspace={editingWorkspace}
           onSuccess={loadWorkspaces}
+        />
+
+        <WorkspaceMembersModal
+          isOpen={showMembersModal}
+          onClose={() => {
+            setShowMembersModal(false);
+            setMembersWorkspaceId(null);
+          }}
+          workspaceId={membersWorkspaceId}
+          onChanged={loadWorkspaces}
         />
       </div>
     </>

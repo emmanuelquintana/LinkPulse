@@ -6,6 +6,9 @@ import Link from "next/link";
 import EditLinkModal from "@/components/EditLinkModal";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { format } from "@/i18n/translations";
+import { sileo } from "sileo";
+import { getErrorMessage } from "@/lib/api";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 interface LinkData {
   id: string;
@@ -22,6 +25,7 @@ interface LinkData {
 
 export default function LinksPage() {
   const t = useTranslation();
+  const confirm = useConfirm();
   const [links, setLinks] = useState<LinkData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,22 +72,27 @@ export default function LinksPage() {
   const handleCopy = (link: LinkData) => {
     const url = `localhost:3002/${link.customAlias || link.shortCode}`;
     navigator.clipboard.writeText(url);
-    // You could add a toast here
+    sileo.success({ title: t.toasts.linkCopied });
     setOpenMenuId(null);
   };
 
   const handleArchive = async (linkId: string) => {
-    if (
-      !confirm(t.linksPage.confirmArchive)
-    )
-      return;
+    const ok = await confirm({
+      title: t.confirmDialog.archiveLinkTitle,
+      description: t.linksPage.confirmArchive,
+      confirmLabel: t.linksPage.archive,
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       await fetchApi(`/links/${linkId}/archive`, { method: "POST" });
       window.dispatchEvent(new Event("notifications-updated"));
+      sileo.success({ title: t.toasts.linkArchived });
       loadLinks(currentPage);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to archive link", err);
+      sileo.error({ title: t.common.error, description: getErrorMessage(err) });
     }
     setOpenMenuId(null);
   };

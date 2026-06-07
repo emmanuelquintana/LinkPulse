@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage } from '@/lib/api';
 import {
   Settings,
   Server,
@@ -123,9 +123,10 @@ function EmailSettingsContent() {
         body: JSON.stringify({ ...form, provider }),
       });
       setSaveSuccess(true);
+      sileo.success({ title: t.toasts.settingsSaved });
       setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err: any) {
-      sileo.error({ title: t.emailSettings.saveError, description: err.message });
+    } catch (err: unknown) {
+      sileo.error({ title: t.emailSettings.saveError, description: getErrorMessage(err) });
     } finally {
       setSaving(false);
     }
@@ -140,9 +141,17 @@ function EmailSettingsContent() {
         method: 'POST',
         body: JSON.stringify({ to: testEmail }),
       });
-      setTestResult(data.data || data);
-    } catch (err: any) {
-      setTestResult({ success: false, message: err.message || t.emailSettings.testFailed });
+      const result = (data.data || data) as { success: boolean; message: string };
+      setTestResult(result);
+      if (result.success) {
+        sileo.success({ title: t.toasts.testEmailSent });
+      } else {
+        sileo.error({ title: t.emailSettings.testFailed, description: result.message });
+      }
+    } catch (err: unknown) {
+      const message = getErrorMessage(err) || t.emailSettings.testFailed;
+      setTestResult({ success: false, message });
+      sileo.error({ title: t.emailSettings.testFailed, description: message });
     } finally {
       setTesting(false);
     }

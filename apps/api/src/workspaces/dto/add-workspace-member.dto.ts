@@ -1,6 +1,8 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { WorkspaceRole } from '@linkpulse/db';
-import { IsEmail, IsEnum, IsNotEmpty } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+import { WorkspacePermissionsDto } from './workspace-permissions.dto.js';
 
 export class AddWorkspaceMemberDto {
   @ApiProperty({ description: 'Email of the user to invite' })
@@ -11,4 +13,13 @@ export class AddWorkspaceMemberDto {
   @ApiProperty({ enum: WorkspaceRole, description: 'Role to assign' })
   @IsEnum(WorkspaceRole)
   role!: WorkspaceRole;
+
+  @ApiPropertyOptional({
+    type: () => WorkspacePermissionsDto,
+    description: 'Overrides de permisos granulares (opcional)',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WorkspacePermissionsDto)
+  permissions?: WorkspacePermissionsDto;
 }

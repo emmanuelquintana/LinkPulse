@@ -2,6 +2,7 @@ import { Controller, Post, Body, Req, UseGuards, Headers, RawBodyRequest, BadReq
 import { BillingService } from './billing.service.js';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard.js';
 import { Request } from 'express';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 
 @Controller('billing')
 export class BillingController {
@@ -10,7 +11,7 @@ export class BillingController {
   @Post('checkout')
   @UseGuards(SupabaseAuthGuard)
   async createCheckout(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() body: { workspaceId: string; priceId: string },
   ) {
     const userId = req.user?.sub;
@@ -20,7 +21,7 @@ export class BillingController {
   @Post('portal')
   @UseGuards(SupabaseAuthGuard)
   async createPortal(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Body() body: { workspaceId: string },
   ) {
     const userId = req.user?.sub;

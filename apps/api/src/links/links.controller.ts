@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, Patch, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
-import { Request } from 'express';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 import { LinksService } from './links.service.js';
 import { CreateLinkDto } from './dto/create-link.dto.js';
 import { LinkDto } from './dto/link.dto.js';
@@ -20,16 +20,16 @@ export class LinksController {
   @UseGuards(PlanLimitGuard)
   @ApiOperation({ summary: 'Create a new shortened link' })
   @ApiOkResponseWrapped(LinkDto)
-  create(@Req() req: Request & { user?: any }, @Body() createLinkDto: CreateLinkDto) {
+  create(@Req() req: AuthenticatedRequest, @Body() createLinkDto: CreateLinkDto) {
     const userId = req.user?.sub;
-    const email = req.user?.email;
+    const email = req.user?.email ?? '';
     return this.linksService.create(userId, email, createLinkDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all links for the current user (paginated)' })
   // We don't have a specific paginated decorator yet, so we return the raw object for now
-  findAll(@Req() req: Request & { user?: any }, @Query() paginationQuery: PaginationQueryDto) {
+  findAll(@Req() req: AuthenticatedRequest, @Query() paginationQuery: PaginationQueryDto) {
     const userId = req.user?.sub;
     return this.linksService.findAllForUser(userId, paginationQuery);
   }
@@ -38,7 +38,7 @@ export class LinksController {
   @ApiOperation({ summary: 'Get a specific link by ID' })
   @ApiParam({ name: 'id', description: 'Link UUID' })
   @ApiOkResponseWrapped(LinkDto)
-  findOne(@Req() req: Request & { user?: any }, @Param('id') id: string) {
+  findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const userId = req.user?.sub;
     return this.linksService.findOne(userId, id);
   }
@@ -48,7 +48,7 @@ export class LinksController {
   @ApiParam({ name: 'id', description: 'Link UUID' })
   @ApiOkResponseWrapped(LinkDto)
   update(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() updateLinkDto: Partial<CreateLinkDto>,
   ) {
@@ -60,7 +60,7 @@ export class LinksController {
   @ApiOperation({ summary: 'Archive a specific link' })
   @ApiParam({ name: 'id', description: 'Link UUID' })
   @ApiOkResponseWrapped(LinkDto)
-  archive(@Req() req: Request & { user?: any }, @Param('id') id: string) {
+  archive(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const userId = req.user?.sub;
     return this.linksService.archive(userId, id);
   }

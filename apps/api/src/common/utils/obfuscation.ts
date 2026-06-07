@@ -29,14 +29,18 @@ export function maskData(value: string | undefined | null): string {
 /**
  * Convenience method to mask multiple fields in an object
  */
-export function maskObject(obj: any, keysToMask: string[]): any {
+export function maskObject<T extends Record<string, unknown> | null | undefined>(
+  obj: T,
+  keysToMask: string[],
+): T {
   if (!obj || typeof obj !== 'object') return obj;
 
-  const masked = { ...obj };
+  const masked: Record<string, unknown> = { ...obj };
   for (const key of keysToMask) {
-    if (masked[key]) {
-      masked[key] = maskData(masked[key]);
+    const value = masked[key];
+    if (typeof value === 'string') {
+      masked[key] = maskData(value);
     }
   }
-  return masked;
+  return masked as T;
 }

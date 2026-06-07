@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage } from '@/lib/api';
 import { Mail, Plus, Send, BarChart2, Clock, CheckCircle, X, FileText, Settings, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from '@/i18n/I18nProvider';
 import { format } from '@/i18n/translations';
 import { sileo } from 'sileo';
+import { useConfirm } from '@/components/ConfirmProvider';
 
 interface EmailCampaign {
   id: string;
@@ -32,6 +33,7 @@ const STATUS_CONFIG: Record<string, { labelKey: 'statusDraft' | 'statusSending' 
 
 export default function EmailsPage() {
   const t = useTranslation();
+  const confirm = useConfirm();
   const [campaigns, setCampaigns] = useState<EmailCampaign[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState('');
@@ -72,7 +74,12 @@ export default function EmailsPage() {
   }
 
   async function handleSend(campaignId: string) {
-    if (!confirm(t.emails.confirmSend)) return;
+    const ok = await confirm({
+      title: t.confirmDialog.sendCampaignTitle,
+      description: t.emails.confirmSend,
+      confirmLabel: t.emails.send,
+    });
+    if (!ok) return;
     setSending(campaignId);
     try {
       const result = await fetchApi(
@@ -81,8 +88,8 @@ export default function EmailsPage() {
       );
       sileo.success({ title: format(t.emails.sentToSubscribers, { n: result?.data?.sent ?? 0 }) });
       loadCampaigns();
-    } catch (err: any) {
-      sileo.error({ title: t.emails.sendFailed, description: err.message });
+    } catch (err: unknown) {
+      sileo.error({ title: t.emails.sendFailed, description: getErrorMessage(err) });
     } finally {
       setSending(null);
     }
@@ -260,9 +267,10 @@ function CreateCampaignModal({
           replyTo: form.replyTo || undefined,
         }),
       });
+      sileo.success({ title: t.toasts.campaignCreated });
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || t.emails.createError);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || t.emails.createError);
     } finally {
       setSaving(false);
     }

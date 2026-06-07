@@ -23,7 +23,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { fetchApi } from "@/lib/api";
+import { fetchApi, getErrorMessage } from "@/lib/api";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { format, type Translations } from "@/i18n/translations";
 
@@ -60,8 +60,13 @@ const iconByType: Record<NotificationType, LucideIcon> = {
   SYSTEM: Bell,
 };
 
-function unwrapData<T>(result: any, fallback: T): T {
-  return result?.data ?? result?.items ?? result ?? fallback;
+function unwrapData<T>(result: unknown, fallback: T): T {
+  if (result && typeof result === "object") {
+    const record = result as { data?: unknown; items?: unknown };
+    if (record.data !== undefined) return record.data as T;
+    if (record.items !== undefined) return record.items as T;
+  }
+  return (result as T) ?? fallback;
 }
 
 function formatRelativeTime(value: string, t: Translations) {
@@ -114,9 +119,9 @@ export function NotificationCenter() {
       });
       setNotifications(Array.isArray(items) ? items : []);
       setUnreadCount(countPayload.count ?? 0);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to load notifications", err);
-      setError(err.message || t.notifications.unavailable);
+      setError(getErrorMessage(err) || t.notifications.unavailable);
     } finally {
       setLoading(false);
       setRefreshing(false);

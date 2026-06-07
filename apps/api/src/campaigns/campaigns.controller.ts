@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Req, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
-import { Request } from 'express';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 import { CampaignsService } from './campaigns.service.js';
 import { CreateCampaignDto } from './dto/create-campaign.dto.js';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard.js';
@@ -14,14 +14,14 @@ export class CampaignsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new campaign' })
-  create(@Req() req: Request & { user?: any }, @Body() createCampaignDto: CreateCampaignDto) {
+  create(@Req() req: AuthenticatedRequest, @Body() createCampaignDto: CreateCampaignDto) {
     const userId = req.user?.sub;
     return this.campaignsService.create(userId, createCampaignDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all campaigns for a workspace' })
-  findAll(@Req() req: Request & { user?: any }, @Query('workspaceId') workspaceId: string) {
+  findAll(@Req() req: AuthenticatedRequest, @Query('workspaceId') workspaceId: string) {
     const userId = req.user?.sub;
     return this.campaignsService.findAllForWorkspace(userId, workspaceId);
   }
@@ -29,7 +29,7 @@ export class CampaignsController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific campaign by ID' })
   @ApiParam({ name: 'id', description: 'Campaign UUID' })
-  findOne(@Req() req: Request & { user?: any }, @Param('id') id: string) {
+  findOne(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const userId = req.user?.sub;
     return this.campaignsService.findOne(userId, id);
   }
@@ -38,7 +38,7 @@ export class CampaignsController {
   @ApiOperation({ summary: 'Update a specific campaign' })
   @ApiParam({ name: 'id', description: 'Campaign UUID' })
   update(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() updateCampaignDto: Partial<CreateCampaignDto>,
   ) {
@@ -49,7 +49,7 @@ export class CampaignsController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a specific campaign' })
   @ApiParam({ name: 'id', description: 'Campaign UUID' })
-  remove(@Req() req: Request & { user?: any }, @Param('id') id: string) {
+  remove(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
     const userId = req.user?.sub;
     return this.campaignsService.delete(userId, id);
   }

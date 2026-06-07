@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage } from '@/lib/api';
+import { fileToCompressedAvatar } from '@/lib/image';
 import { useTranslation } from '@/i18n/I18nProvider';
+import { sileo } from 'sileo';
+import type { Profile } from '@/types/models';
 
 export default function ProfilePage() {
   const t = useTranslation();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState('profile');
@@ -47,14 +50,17 @@ export default function ProfilePage() {
         body: JSON.stringify(formData)
       });
       setMessage({ type: 'success', text: t.profile.updateSuccess });
+      sileo.success({ title: t.toasts.profileSaved });
       // Update local profile state
       const updatedProfile = { ...profile, ...formData };
       setProfile(updatedProfile);
-      
+
       // Dispatch custom event for sidebar sync
       window.dispatchEvent(new CustomEvent('profile-updated', { detail: updatedProfile }));
-    } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || t.profile.updateError });
+    } catch (err: unknown) {
+      const text = getErrorMessage(err) || t.profile.updateError;
+      setMessage({ type: 'error', text });
+      sileo.error({ title: text });
     } finally {
       setSaving(false);
     }
@@ -64,17 +70,24 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
+    // Sanity cap para no intentar decodificar archivos absurdos (no fotos).
+    if (file.size > 25 * 1024 * 1024) {
       setMessage({ type: 'error', text: t.profile.fileTooLarge });
+      e.target.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setFormData({ ...formData, avatarUrl: base64String });
-    };
-    reader.readAsDataURL(file);
+    try {
+      // Comprime/redimensiona en el cliente: cualquier foto queda pequeña y
+      // siempre se puede guardar.
+      const compressed = await fileToCompressedAvatar(file);
+      setFormData((prev) => ({ ...prev, avatarUrl: compressed }));
+    } catch (err) {
+      console.error('Failed to process image', err);
+      setMessage({ type: 'error', text: t.profile.imageError });
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);

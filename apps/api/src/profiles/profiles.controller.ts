@@ -1,6 +1,6 @@
 import { Controller, Get, Req, UseGuards, Patch, Body } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiUnauthorizedResponse } from '@nestjs/swagger';
-import { Request } from 'express';
+import type { AuthenticatedRequest } from '../common/types/authenticated-request.js';
 import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard.js';
 import { ApiOkResponseWrapped } from '../shared/response/api-ok-response-wrapped.js';
 import { ProfileDto } from './dto/profile.dto.js';
@@ -18,7 +18,7 @@ export class ProfilesController {
   @ApiOperation({ summary: 'Bootstrap user profile', description: 'Creates or returns the user profile associated with the current Supabase token.' })
   @ApiOkResponseWrapped(ProfileDto)
   @ApiUnauthorizedResponse({ description: 'Invalid or missing Supabase token' })
-  async bootstrapProfile(@Req() req: Request & { user?: any }) {
+  async bootstrapProfile(@Req() req: AuthenticatedRequest) {
     const userId = req.user?.sub;
     const email = req.user?.email;
     const metadata = req.user?.user_metadata;
@@ -39,7 +39,7 @@ export class ProfilesController {
   @ApiOperation({ summary: 'Update user profile' })
   @ApiOkResponseWrapped(ProfileDto)
   async updateProfile(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Body() updateProfileDto: UpdateProfileDto
   ) {
     const userId = req.user?.sub;

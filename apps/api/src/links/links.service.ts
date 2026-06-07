@@ -11,6 +11,7 @@ import { PaginationQueryDto } from "../shared/dto/pagination-query.dto.js";
 import { RedisService } from "../redis/redis.service.js";
 import { ProfilesService } from "../profiles/profiles.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
+import { WorkspaceAccessService } from "../workspaces/workspace-access.service.js";
 
 // Alphabet chosen to avoid ambiguous characters
 const nanoid = customAlphabet(
@@ -25,6 +26,7 @@ export class LinksService {
     private readonly redis: RedisService,
     private readonly profilesService: ProfilesService,
     private readonly notificationsService: NotificationsService,
+    private readonly access: WorkspaceAccessService,
   ) {}
 
   async create(userId: string, email: string, createLinkDto: CreateLinkDto) {
@@ -36,18 +38,8 @@ export class LinksService {
 
     // Validate workspace if provided
     if (workspaceId) {
-      const isMember = await this.prisma.workspaceMember.findFirst({
-        where: {
-          workspaceId,
-          userId,
-        },
-      });
-
-      if (!isMember) {
-        throw new ForbiddenException(
-          "You do not have access to this workspace",
-        );
-      }
+      // Requiere ser miembro y tener permiso para gestionar links.
+      await this.access.assertPermission(userId, workspaceId, "canManageLinks");
     } else {
       // Note: schema says workspaceId is required. We must handle missing workspaceId.
       // The user's checklist specifies workspace logic. Let's assume links must belong to a workspace.
@@ -167,7 +159,7 @@ export class LinksService {
     return {
       items: items.map((item) => ({
         ...item,
-        clicksCount: (item as any)._count?.clickEvents || 0,
+        clicksCount: item._count?.clickEvents ?? 0,
       })),
       page,
       size: limit,
@@ -211,7 +203,7 @@ export class LinksService {
 
     return {
       ...link,
-      clicksCount: (link as any)._count?.clickEvents || 0,
+      clicksCount: link._count?.clickEvents ?? 0,
     };
   }
 

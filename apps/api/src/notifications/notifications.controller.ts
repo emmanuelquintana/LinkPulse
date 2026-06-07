@@ -14,7 +14,7 @@ import {
   ApiParam,
   ApiTags,
 } from "@nestjs/swagger";
-import { Request } from "express";
+import type { AuthenticatedRequest } from "../common/types/authenticated-request.js";
 import { SupabaseAuthGuard } from "../common/guards/supabase-auth.guard.js";
 import { ApiOkResponseWrapped } from "../shared/response/api-ok-response-wrapped.js";
 import { NotificationDto } from "./dto/notification.dto.js";
@@ -31,7 +31,7 @@ export class NotificationsController {
   @Get()
   @ApiOperation({ summary: "Get notifications for the current user" })
   findAll(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Query() query: NotificationQueryDto,
   ) {
     const userId = req.user?.sub;
@@ -42,14 +42,14 @@ export class NotificationsController {
   @ApiOperation({
     summary: "Get unread notification count for the current user",
   })
-  getUnreadCount(@Req() req: Request & { user?: any }) {
+  getUnreadCount(@Req() req: AuthenticatedRequest) {
     const userId = req.user?.sub;
     return this.notificationsService.getUnreadCount(userId);
   }
 
   @Patch("read-all")
   @ApiOperation({ summary: "Mark all notifications as read" })
-  markAllAsRead(@Req() req: Request & { user?: any }) {
+  markAllAsRead(@Req() req: AuthenticatedRequest) {
     const userId = req.user?.sub;
     return this.notificationsService.markAllAsRead(userId);
   }
@@ -58,7 +58,7 @@ export class NotificationsController {
   @ApiOperation({ summary: "Mark one notification as read" })
   @ApiParam({ name: "id", description: "Notification UUID" })
   @ApiOkResponseWrapped(NotificationDto)
-  markAsRead(@Req() req: Request & { user?: any }, @Param("id") id: string) {
+  markAsRead(@Req() req: AuthenticatedRequest, @Param("id") id: string) {
     const userId = req.user?.sub;
     return this.notificationsService.markAsRead(userId, id);
   }
@@ -66,7 +66,7 @@ export class NotificationsController {
   @Delete(":id")
   @ApiOperation({ summary: "Delete one notification" })
   @ApiParam({ name: "id", description: "Notification UUID" })
-  delete(@Req() req: Request & { user?: any }, @Param("id") id: string) {
+  delete(@Req() req: AuthenticatedRequest, @Param("id") id: string) {
     const userId = req.user?.sub;
     return this.notificationsService.deleteForUser(userId, id);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
@@ -14,6 +14,14 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmationSent, setConfirmationSent] = useState(false);
+
+  // Pre-rellena el email cuando se llega desde un link de invitación.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const invitedEmail = params.get('email');
+    if (invitedEmail) setEmail(invitedEmail);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,24 +29,66 @@ export default function RegisterPage() {
     setError(null);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: name,
-        }
+        },
+        emailRedirectTo: `${window.location.origin}/login`,
       }
     });
 
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else {
-      router.push('/dashboard');
-      router.refresh();
+      return;
     }
+
+    // Si Supabase no devuelve sesión, el correo requiere confirmación.
+    if (!data.session) {
+      setConfirmationSent(true);
+      setLoading(false);
+      return;
+    }
+
+    // Confirmación desactivada: queda logueado directamente.
+    router.push('/dashboard');
+    router.refresh();
   };
+
+  if (confirmationSent) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans w-full">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <Link href="/" className="flex justify-center items-center gap-2 text-indigo-600 font-bold text-3xl mb-6">
+            <span className="material-symbols-outlined text-4xl">link</span>
+            LinkPulse
+          </Link>
+        </div>
+        <div className="mt-2 sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-10 px-8 shadow sm:rounded-2xl border border-gray-100 text-center">
+            <div className="mx-auto h-16 w-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6">
+              <span className="material-symbols-outlined text-4xl">mark_email_unread</span>
+            </div>
+            <h2 className="text-2xl font-extrabold text-gray-900">{t.auth.confirmEmailTitle}</h2>
+            <p className="mt-3 text-sm text-gray-600 leading-relaxed">
+              {t.auth.confirmEmailText}{' '}
+              <span className="font-bold text-gray-900 break-all">{email}</span>
+            </p>
+            <p className="mt-2 text-xs text-gray-400">{t.auth.confirmEmailHint}</p>
+            <Link
+              href="/login"
+              className="mt-8 inline-flex w-full justify-center py-2.5 px-4 rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+            >
+              {t.auth.goToLogin}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans w-full">

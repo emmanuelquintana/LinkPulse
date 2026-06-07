@@ -1,7 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { WorkspaceAccessService } from '../workspaces/workspace-access.service.js';
 import Stripe from 'stripe';
+
+/**
+ * Campos que leemos del objeto de suscripción de Stripe en tiempo de ejecución.
+ * Se declaran aparte porque los tipos del SDK apuntan a una versión de API más
+ * reciente donde `current_period_end` ya no vive en la suscripción, mientras que
+ * la versión de API que fijamos (`2025-02-24.acacia`) sí lo expone ahí.
+ */
+interface StripeSubscriptionRuntime {
+  status: string;
+  items: { data: Array<{ price: { id: string } }> };
+  current_period_end: number;
+  cancel_at_period_end: boolean;
+}
 
 @Injectable()
 export class BillingService {
@@ -11,28 +25,31 @@ export class BillingService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly access: WorkspaceAccessService,
   ) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
       throw new Error('STRIPE_SECRET_KEY is not defined');
     }
     this.stripe = new Stripe(secretKey, {
-      apiVersion: '2025-02-24.acacia' as any,
+      apiVersion: '2025-02-24.acacia' as unknown as Stripe.LatestApiVersion,
     });
   }
 
   async createCheckoutSession(userId: string, workspaceId: string, priceId: string) {
-    // 1. Get or create customer
+    // 1. El usuario necesita el permiso de facturación (el OWNER lo tiene siempre).
+    await this.access.assertPermission(userId, workspaceId, 'canManageBilling');
+
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
       include: { owner: true },
     });
 
-    if (!workspace || workspace.ownerUserId !== userId) {
-      throw new Error('Workspace not found or unauthorized');
+    if (!workspace) {
+      throw new Error('Workspace not found');
     }
 
-    let customerId = (workspace as any).stripeCustomerId;
+    let customerId = workspace.stripeCustomerId;
 
     if (!customerId) {
       const customer = await this.stripe.customers.create({
@@ -46,7 +63,7 @@ export class BillingService {
 
       await this.prisma.workspace.update({
         where: { id: workspaceId },
-        data: { stripeCustomerId: customerId } as any,
+        data: { stripeCustomerId: customerId },
       });
     }
 
@@ -75,23 +92,27 @@ export class BillingService {
       });
 
       return { url: session.url };
-    } catch (err: any) {
-      this.logger.error(`Stripe Checkout Session creation failed: ${err.message}`, err.stack);
-      throw new Error(`Billing Error: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      const stack = err instanceof Error ? err.stack : undefined;
+      this.logger.error(`Stripe Checkout Session creation failed: ${message}`, stack);
+      throw new Error(`Billing Error: ${message}`);
     }
   }
 
   async createCustomerPortalSession(userId: string, workspaceId: string) {
+    await this.access.assertPermission(userId, workspaceId, 'canManageBilling');
+
     const workspace = await this.prisma.workspace.findUnique({
       where: { id: workspaceId },
     });
 
-    if (!workspace || workspace.ownerUserId !== userId || !(workspace as any).stripeCustomerId) {
+    if (!workspace || !workspace.stripeCustomerId) {
       throw new Error('Customer not found');
     }
 
     const session = await this.stripe.billingPortal.sessions.create({
-      customer: (workspace as any).stripeCustomerId,
+      customer: workspace.stripeCustomerId,
       return_url: `${this.configService.get('APP_URL')}/dashboard/billing`,
     });
 
@@ -107,9 +128,10 @@ export class BillingService {
 
     try {
       event = this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-    } catch (err: any) {
-      this.logger.error(`Webhook signature verification failed: ${err.message}`);
-      throw new Error(`Webhook Error: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Webhook signature verification failed: ${message}`);
+      throw new Error(`Webhook Error: ${message}`);
     }
 
     switch (event.type) {
@@ -136,18 +158,18 @@ export class BillingService {
     if (!workspaceId || !subscriptionId) return;
 
     const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
-    const sub = subscription as any;
+    const sub = subscription as unknown as StripeSubscriptionRuntime;
 
     await this.prisma.workspace.update({
       where: { id: workspaceId },
       data: {
         stripeSubscriptionId: subscriptionId,
         plan: 'PRO', // Assuming only PRO for now
-      } as any,
+      },
     });
 
     // Update or create subscription record
-    await (this.prisma as any).subscription.upsert({
+    await this.prisma.subscription.upsert({
       where: { workspaceId },
       create: {
         workspaceId,
@@ -167,12 +189,12 @@ export class BillingService {
 
   private async handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     const workspace = await this.prisma.workspace.findFirst({
-      where: { stripeSubscriptionId: subscription.id } as any,
+      where: { stripeSubscriptionId: subscription.id },
     });
 
     if (!workspace) return;
 
-    const sub = subscription as any;
+    const sub = subscription as unknown as StripeSubscriptionRuntime;
     const status = sub.status;
     const plan = (status === 'active' || status === 'trialing') ? 'PRO' : 'FREE';
 
@@ -181,7 +203,7 @@ export class BillingService {
       data: { plan },
     });
 
-    await (this.prisma as any).subscription.update({
+    await this.prisma.subscription.update({
       where: { workspaceId: workspace.id },
       data: {
         status: sub.status,

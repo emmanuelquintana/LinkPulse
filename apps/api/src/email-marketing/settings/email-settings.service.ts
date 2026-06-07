@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { UpsertEmailSettingsDto } from '../dto/email-settings.dto.js';
 import { EmailSenderService } from '../campaigns/email-sender.service.js';
+import { testEmailTemplate } from '../templates/email-templates.js';
 
 @Injectable()
 export class EmailSettingsService {
@@ -17,7 +18,7 @@ export class EmailSettingsService {
     if (!member) throw new ForbiddenException('You do not have access to this workspace');
   }
 
-  async getSettings(userId: string, workspaceId: string): Promise<any> {
+  async getSettings(userId: string, workspaceId: string) {
     await this.assertOwnerOrAdmin(userId, workspaceId);
     const settings = await this.prisma.emailSettings.findUnique({ where: { workspaceId } });
     if (!settings) return null;
@@ -25,7 +26,7 @@ export class EmailSettingsService {
     return { ...settings, smtpPass: settings.smtpPass ? '••••••••' : null };
   }
 
-  async upsert(userId: string, workspaceId: string, dto: UpsertEmailSettingsDto): Promise<any> {
+  async upsert(userId: string, workspaceId: string, dto: UpsertEmailSettingsDto) {
     await this.assertOwnerOrAdmin(userId, workspaceId);
 
     const data = {
@@ -54,25 +55,21 @@ export class EmailSettingsService {
     const settings = await this.prisma.emailSettings.findUnique({ where: { workspaceId } });
 
     try {
+      const { subject, html } = testEmailTemplate();
       await this.emailSender.sendWithSettings(
         {
           to,
           from: settings?.fromEmail ?? 'noreply@linkpulse.app',
           fromName: settings?.fromName ?? 'LinkPulse',
-          subject: '✅ Test email from LinkPulse',
-          html: `
-            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-              <h2 style="color:#4f46e5;">Connection successful!</h2>
-              <p>Your email settings are working correctly.</p>
-              <p style="color:#6b7280;font-size:13px;">Sent from LinkPulse Email Marketing</p>
-            </div>
-          `,
+          subject,
+          html,
         },
         settings,
       );
       return { success: true, message: 'Test email sent successfully' };
-    } catch (err: any) {
-      return { success: false, message: err.message ?? 'Failed to send test email' };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to send test email';
+      return { success: false, message };
     }
   }
 }

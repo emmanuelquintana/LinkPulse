@@ -1,10 +1,17 @@
 import { createClient } from '@/utils/supabase/client';
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public data?: any) {
+  constructor(public status: number, message: string, public data?: unknown) {
     super(message);
     this.name = 'ApiError';
   }
+}
+
+/** Extrae un mensaje legible de un error desconocido (catch (err: unknown)). */
+export function getErrorMessage(err: unknown): string | undefined {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return undefined;
 }
 
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {

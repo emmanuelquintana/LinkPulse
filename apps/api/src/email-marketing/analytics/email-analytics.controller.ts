@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request.js';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard.js';
 import { EmailAnalyticsService } from './email-analytics.service.js';
 
@@ -14,7 +14,7 @@ export class EmailAnalyticsController {
   @Get(':id/stats')
   @ApiOperation({ summary: 'Get advanced stats for an email campaign' })
   getStats(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Query('workspaceId') workspaceId: string,
     @Param('id') id: string,
   ) {

@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { fetchApi } from '@/lib/api';
+import { fetchApi, getErrorMessage } from '@/lib/api';
 import { Users, Upload, Plus, Tag, Trash2, ChevronLeft, ChevronRight, X, Download, FileSpreadsheet } from 'lucide-react';
 import { useTranslation } from '@/i18n/I18nProvider';
 import { format } from '@/i18n/translations';
+import { sileo } from 'sileo';
+import { useConfirm } from '@/components/ConfirmProvider';
 
 interface Subscriber {
   id: string;
@@ -29,6 +31,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function SubscribersPage() {
   const t = useTranslation();
+  const confirm = useConfirm();
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState('');
@@ -95,11 +98,20 @@ export default function SubscribersPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm(t.subscribers.confirmDelete)) return;
+    const ok = await confirm({
+      title: t.confirmDialog.deleteSubscriberTitle,
+      description: t.subscribers.confirmDelete,
+      confirmLabel: t.common.delete,
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       await fetchApi(`/subscribers/${id}?workspaceId=${selectedWorkspace}`, { method: 'DELETE' });
+      sileo.success({ title: t.toasts.subscriberDeleted });
       loadSubscribers();
-    } catch {}
+    } catch (err: unknown) {
+      sileo.error({ title: t.common.error, description: getErrorMessage(err) });
+    }
   }
 
   async function handleCsvUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -115,10 +127,19 @@ export default function SubscribersPage() {
         `/subscribers/bulk?workspaceId=${selectedWorkspace}`,
         { method: 'POST', body: formData },
       );
-      setCsvResult(data.data || data);
+      const result = (data.data || data) as { imported: number; skipped: number };
+      setCsvResult(result);
+      sileo.success({
+        title: t.subscribers.importComplete,
+        description: format(t.toasts.csvImported, {
+          imported: result.imported,
+          skipped: result.skipped,
+        }),
+      });
       loadSubscribers();
-    } catch {
+    } catch (err: unknown) {
       setCsvResult({ imported: 0, skipped: 0 });
+      sileo.error({ title: t.common.error, description: getErrorMessage(err) });
     } finally {
       setCsvUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -341,9 +362,10 @@ function AddSubscriberModal({
         method: 'POST',
         body: JSON.stringify({ ...form, workspaceId, tags }),
       });
+      sileo.success({ title: t.toasts.subscriberAdded });
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || t.subscribers.createError);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || t.subscribers.createError);
     } finally {
       setSaving(false);
     }

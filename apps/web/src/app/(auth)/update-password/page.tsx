@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { getErrorMessage } from '@/lib/api';
 import { useTranslation } from '@/i18n/I18nProvider';
 
 export default function UpdatePasswordPage() {
@@ -44,8 +45,8 @@ export default function UpdatePasswordPage() {
 
       setMessage(t.auth.passwordUpdated);
       setTimeout(() => router.push('/login'), 1200);
-    } catch (err: any) {
-      setError(err?.message || t.auth.updatePasswordError);
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || t.auth.updatePasswordError);
     } finally {
       setLoading(false);
     }

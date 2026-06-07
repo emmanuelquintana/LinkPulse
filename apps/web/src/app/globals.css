@@ -88,6 +88,12 @@
   }
 }
 
+/* Sombra sutil para las toasts de sileo: les da elevación sobre la página.
+   El drop-shadow sobre el SVG sigue la forma redondeada del pill. */
+[data-sileo-toast] [data-sileo-svg] {
+  filter: drop-shadow(0 6px 20px rgba(15, 23, 42, 0.18));
+}
+
 @keyframes cube-float {
   0% {
     transform: translateY(100vh) rotate(0deg) scale(0.5);

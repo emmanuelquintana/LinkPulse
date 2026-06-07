@@ -7,6 +7,7 @@ import { LinksService } from "./links.service.js";
 
 import { ProfilesModule } from "../profiles/profiles.module.js";
 import { NotificationsModule } from "../notifications/notifications.module.js";
+import { WorkspacesModule } from "../workspaces/workspaces.module.js";
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { NotificationsModule } from "../notifications/notifications.module.js";
     RedisModule,
     ProfilesModule,
     NotificationsModule,
+    WorkspacesModule,
   ],
   controllers: [LinksController],
   providers: [LinksService],

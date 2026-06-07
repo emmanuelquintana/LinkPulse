@@ -14,11 +14,12 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Request } from 'express';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request.js';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard.js';
-import { SubscribersService } from './subscribers.service.js';
+import { SubscribersService, type SubscriberWithTags } from './subscribers.service.js';
 import { CreateSubscriberDto } from '../dto/create-subscriber.dto.js';
-import { PaginationQueryDto } from '../../shared/dto/pagination-query.dto.js';
+import { WorkspacePaginationQueryDto } from '../../shared/dto/workspace-pagination-query.dto.js';
+import type { PaginatedResult } from '../../shared/types/paginated-result.js';
 
 @ApiTags('email-marketing / subscribers')
 @ApiBearerAuth()
@@ -29,45 +30,47 @@ export class SubscribersController {
 
   @Post()
   @ApiOperation({ summary: 'Create a single subscriber' })
-  create(@Req() req: Request & { user?: any }, @Body() dto: CreateSubscriberDto): Promise<any> {
-    return this.subscribersService.create(req.user?.sub, dto);
+  create(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: CreateSubscriberDto,
+  ): Promise<SubscriberWithTags> {
+    return this.subscribersService.create(req.user.sub, dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'List subscribers for a workspace (paginated)' })
   findAll(
-    @Req() req: Request & { user?: any },
-    @Query('workspaceId') workspaceId: string,
-    @Query() pagination: PaginationQueryDto,
-  ): Promise<any> {
-    return this.subscribersService.findAll(req.user?.sub, workspaceId, pagination);
+    @Req() req: AuthenticatedRequest,
+    @Query() query: WorkspacePaginationQueryDto,
+  ): Promise<PaginatedResult<SubscriberWithTags>> {
+    return this.subscribersService.findAll(req.user.sub, query.workspaceId, query);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a subscriber by ID' })
   findOne(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Query('workspaceId') workspaceId: string,
     @Param('id') id: string,
-  ): Promise<any> {
-    return this.subscribersService.findOne(req.user?.sub, workspaceId, id);
+  ): Promise<SubscriberWithTags> {
+    return this.subscribersService.findOne(req.user.sub, workspaceId, id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a subscriber' })
   update(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Query('workspaceId') workspaceId: string,
     @Param('id') id: string,
     @Body() dto: Partial<CreateSubscriberDto>,
-  ): Promise<any> {
-    return this.subscribersService.update(req.user?.sub, workspaceId, id, dto);
+  ): Promise<SubscriberWithTags> {
+    return this.subscribersService.update(req.user.sub, workspaceId, id, dto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a subscriber' })
   remove(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Query('workspaceId') workspaceId: string,
     @Param('id') id: string,
   ) {
@@ -79,7 +82,7 @@ export class SubscribersController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   async bulkImport(
-    @Req() req: Request & { user?: any },
+    @Req() req: AuthenticatedRequest,
     @Query('workspaceId') workspaceId: string,
     @UploadedFile() file: { buffer: Buffer; originalname: string },
   ) {

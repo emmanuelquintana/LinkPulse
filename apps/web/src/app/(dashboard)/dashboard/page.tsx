@@ -5,6 +5,9 @@ import { fetchApi } from "@/lib/api";
 import Link from "next/link";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { format } from "@/i18n/translations";
+import { sileo } from "sileo";
+import { getErrorMessage } from "@/lib/api";
+import { useConfirm } from "@/components/ConfirmProvider";
 
 interface Link {
   id: string;
@@ -28,6 +31,7 @@ interface AnalyticsData {
 
 export default function DashboardHomePage() {
   const t = useTranslation();
+  const confirm = useConfirm();
   const [links, setLinks] = useState<Link[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,17 +80,26 @@ export default function DashboardHomePage() {
   const handleCopy = (link: Link) => {
     const url = `localhost:3002/${link.customAlias || link.shortCode}`;
     navigator.clipboard.writeText(url);
+    sileo.success({ title: t.toasts.linkCopied });
     setOpenMenuId(null);
   };
 
   const handleArchive = async (linkId: string) => {
-    if (!confirm(t.dashboard.confirmArchive)) return;
+    const ok = await confirm({
+      title: t.confirmDialog.archiveLinkTitle,
+      description: t.dashboard.confirmArchive,
+      confirmLabel: t.dashboard.archiveLink,
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       await fetchApi(`/links/${linkId}/archive`, { method: "POST" });
       window.dispatchEvent(new Event("notifications-updated"));
+      sileo.success({ title: t.toasts.linkArchived });
       loadData();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to archive link", err);
+      sileo.error({ title: t.common.error, description: getErrorMessage(err) });
     }
     setOpenMenuId(null);
   };

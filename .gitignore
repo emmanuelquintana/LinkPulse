@@ -46,3 +46,9 @@ desktop.ini
 check_profile.js
 check_profile.ts
 test-bootstrap.ts
+._*.mjs
+
+# Local agent tooling (machine-specific paths / local settings)
+.claude/
+.agents/
+skills-lock.json
