@@ -6,15 +6,28 @@ import Stripe from 'stripe';
 
 /**
  * Campos que leemos del objeto de suscripción de Stripe en tiempo de ejecución.
- * Se declaran aparte porque los tipos del SDK apuntan a una versión de API más
- * reciente donde `current_period_end` ya no vive en la suscripción, mientras que
- * la versión de API que fijamos (`2025-02-24.acacia`) sí lo expone ahí.
+ * Según la versión del API, `current_period_end` vive en la raíz de la
+ * suscripción (versiones antiguas) o dentro de cada item (versiones nuevas).
+ * Los webhooks llegan con la versión del endpoint/cuenta, así que soportamos
+ * ambas formas.
  */
 interface StripeSubscriptionRuntime {
   status: string;
-  items: { data: Array<{ price: { id: string } }> };
-  current_period_end: number;
+  items: {
+    data: Array<{ price: { id: string }; current_period_end?: number }>;
+  };
+  current_period_end?: number;
   cancel_at_period_end: boolean;
+}
+
+/** Devuelve el fin del periodo actual sin importar la versión del API. */
+function subscriptionPeriodEnd(sub: StripeSubscriptionRuntime): Date {
+  const ts = sub.current_period_end ?? sub.items.data[0]?.current_period_end;
+  if (!ts) {
+    // Último recurso: un mes a partir de ahora (no debería ocurrir).
+    return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  }
+  return new Date(ts * 1000);
 }
 
 @Injectable()
@@ -151,6 +164,15 @@ export class BillingService {
     return { received: true };
   }
 
+  /**
+   * Mapea un priceId de Stripe al plan que otorga. ENTERPRISE se cobra por
+   * empresa (una sola suscripción del dueño cubre todos sus workspaces).
+   */
+  private planForPrice(priceId: string | undefined): 'PRO' | 'ENTERPRISE' {
+    const enterprisePriceId = this.configService.get<string>('STRIPE_ENTERPRISE_PRICE_ID');
+    return enterprisePriceId && priceId === enterprisePriceId ? 'ENTERPRISE' : 'PRO';
+  }
+
   private async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     const workspaceId = session.metadata?.workspaceId;
     const subscriptionId = session.subscription as string;
@@ -159,14 +181,24 @@ export class BillingService {
 
     const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
     const sub = subscription as unknown as StripeSubscriptionRuntime;
+    const plan = this.planForPrice(sub.items.data[0]?.price.id);
 
-    await this.prisma.workspace.update({
+    const workspace = await this.prisma.workspace.update({
       where: { id: workspaceId },
       data: {
         stripeSubscriptionId: subscriptionId,
-        plan: 'PRO', // Assuming only PRO for now
+        plan,
       },
     });
+
+    if (plan === 'ENTERPRISE') {
+      // La suscripción ENTERPRISE es por empresa: cubre todos los workspaces
+      // del dueño, no sólo el que inició el checkout.
+      await this.prisma.workspace.updateMany({
+        where: { ownerUserId: workspace.ownerUserId },
+        data: { plan: 'ENTERPRISE' },
+      });
+    }
 
     // Update or create subscription record
     await this.prisma.subscription.upsert({
@@ -175,13 +207,13 @@ export class BillingService {
         workspaceId,
         status: sub.status,
         priceId: sub.items.data[0].price.id,
-        currentPeriodEnd: new Date(sub.current_period_end * 1000),
+        currentPeriodEnd: subscriptionPeriodEnd(sub),
         cancelAtPeriodEnd: sub.cancel_at_period_end,
       },
       update: {
         status: sub.status,
         priceId: sub.items.data[0].price.id,
-        currentPeriodEnd: new Date(sub.current_period_end * 1000),
+        currentPeriodEnd: subscriptionPeriodEnd(sub),
         cancelAtPeriodEnd: sub.cancel_at_period_end,
       },
     });
@@ -196,18 +228,36 @@ export class BillingService {
 
     const sub = subscription as unknown as StripeSubscriptionRuntime;
     const status = sub.status;
-    const plan = (status === 'active' || status === 'trialing') ? 'PRO' : 'FREE';
+    const paidPlan = this.planForPrice(sub.items.data[0]?.price.id);
+    const isActive = status === 'active' || status === 'trialing';
+    const plan = isActive ? paidPlan : 'FREE';
 
     await this.prisma.workspace.update({
       where: { id: workspace.id },
       data: { plan },
     });
 
+    if (paidPlan === 'ENTERPRISE') {
+      // ENTERPRISE es por empresa: al activarse sube todos los workspaces del
+      // dueño; al cancelarse, sólo baja los que estaban en ENTERPRISE.
+      if (isActive) {
+        await this.prisma.workspace.updateMany({
+          where: { ownerUserId: workspace.ownerUserId },
+          data: { plan: 'ENTERPRISE' },
+        });
+      } else {
+        await this.prisma.workspace.updateMany({
+          where: { ownerUserId: workspace.ownerUserId, plan: 'ENTERPRISE' },
+          data: { plan: 'FREE' },
+        });
+      }
+    }
+
     await this.prisma.subscription.update({
       where: { workspaceId: workspace.id },
       data: {
         status: sub.status,
-        currentPeriodEnd: new Date(sub.current_period_end * 1000),
+        currentPeriodEnd: subscriptionPeriodEnd(sub),
         cancelAtPeriodEnd: sub.cancel_at_period_end,
       },
     });

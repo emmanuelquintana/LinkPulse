@@ -26,7 +26,7 @@ export class WorkspacesController {
   createWorkspace(
     @Req() req: AuthenticatedRequest,
     @Body() dto: CreateWorkspaceDto,
-  ) {
+  ): Promise<unknown> {
     const userId = req.user?.sub;
     const email = req.user?.email ?? '';
     return this.workspacesService.createWorkspace(userId, email, dto);
@@ -35,7 +35,7 @@ export class WorkspacesController {
   @Get()
   @ApiOperation({ summary: 'Get all workspaces for the current user' })
   @ApiOkResponseWrappedArray(WorkspaceDto)
-  getUserWorkspaces(@Req() req: AuthenticatedRequest) {
+  getUserWorkspaces(@Req() req: AuthenticatedRequest): Promise<unknown> {
     const userId = req.user?.sub;
     return this.workspacesService.getUserWorkspaces(userId);
   }
@@ -54,7 +54,7 @@ export class WorkspacesController {
   getWorkspaceById(
     @Req() req: AuthenticatedRequest,
     @Param('id') workspaceId: string,
-  ) {
+  ): Promise<unknown> {
     const userId = req.user?.sub;
     return this.workspacesService.getWorkspaceById(userId, workspaceId);
   }
@@ -67,7 +67,7 @@ export class WorkspacesController {
     @Req() req: AuthenticatedRequest,
     @Param('id') workspaceId: string,
     @Body() dto: AddWorkspaceMemberDto,
-  ) {
+  ): Promise<unknown> {
     const userId = req.user?.sub;
     return this.workspacesService.addMember(
       userId,
@@ -88,7 +88,7 @@ export class WorkspacesController {
     @Param('id') workspaceId: string,
     @Param('memberId') memberId: string,
     @Body() dto: UpdateWorkspaceMemberDto,
-  ) {
+  ): Promise<unknown> {
     const userId = req.user?.sub;
     return this.workspacesService.updateMember(userId, workspaceId, memberId, {
       role: dto.role as 'ADMIN' | 'MEMBER' | undefined,

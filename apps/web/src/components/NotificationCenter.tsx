@@ -23,7 +23,8 @@ import {
   WalletCards,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { fetchApi, getErrorMessage } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
+import { localizeApiError } from "@/lib/api-errors";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { format, type Translations } from "@/i18n/translations";
 
@@ -150,7 +151,7 @@ export function NotificationCenter() {
       setUnreadCount(countPayload.count ?? 0);
     } catch (err: unknown) {
       console.error("Failed to load notifications", err);
-      setError(getErrorMessage(err) || t.notifications.unavailable);
+      setError(localizeApiError(err, t) || t.notifications.unavailable);
     } finally {
       setLoading(false);
       setRefreshing(false);

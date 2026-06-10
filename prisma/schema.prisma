@@ -46,11 +46,12 @@ enum NotificationType {
 }
 
 model Profile {
-  id            String            @id @db.Uuid
-  email         String            @unique
-  firstName     String?           @map("first_name")
-  lastName      String?           @map("last_name")
-  avatarUrl     String?           @map("avatar_url")
+  id                String            @id @db.Uuid
+  email             String            @unique
+  firstName         String?           @map("first_name")
+  lastName          String?           @map("last_name")
+  avatarUrl         String?           @map("avatar_url")
+  notificationPrefs Json?             @map("notification_prefs")
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   workspaces    Workspace[]       @relation("WorkspaceOwner")
@@ -73,6 +74,7 @@ model Workspace {
   owner                Profile           @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
   members              WorkspaceMember[]
   invitations          WorkspaceInvitation[]
+  apiKeys              ApiKey[]
   links                Link[]
   campaigns            Campaign[]
   subscription         Subscription?
@@ -103,6 +105,24 @@ model WorkspaceMember {
   @@unique([workspaceId, userId])
   @@index([userId])
   @@map("workspace_members")
+}
+
+model ApiKey {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @db.Uuid
+  name        String    @db.VarChar(80)
+  /// Primeros caracteres de la clave para identificarla en la UI (lp_xxxx…).
+  keyPrefix   String    @map("key_prefix") @db.VarChar(16)
+  /// SHA-256 de la clave completa; la clave en claro nunca se almacena.
+  keyHash     String    @unique @map("key_hash") @db.VarChar(64)
+  createdBy   String    @map("created_by") @db.Uuid
+  lastUsedAt  DateTime? @map("last_used_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("api_keys")
 }
 
 model WorkspaceInvitation {

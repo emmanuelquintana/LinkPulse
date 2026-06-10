@@ -5,6 +5,7 @@ import { SupabaseAuthGuard } from '../common/guards/supabase-auth.guard.js';
 import { ApiOkResponseWrapped } from '../shared/response/api-ok-response-wrapped.js';
 import { ProfileDto } from './dto/profile.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import { UpdateNotificationPrefsDto } from './dto/update-notification-prefs.dto.js';
 import { ProfilesService } from './profiles.service.js';
 
 @ApiTags('Profiles')
@@ -18,7 +19,7 @@ export class ProfilesController {
   @ApiOperation({ summary: 'Bootstrap user profile', description: 'Creates or returns the user profile associated with the current Supabase token.' })
   @ApiOkResponseWrapped(ProfileDto)
   @ApiUnauthorizedResponse({ description: 'Invalid or missing Supabase token' })
-  async bootstrapProfile(@Req() req: AuthenticatedRequest) {
+  async bootstrapProfile(@Req() req: AuthenticatedRequest): Promise<unknown> {
     const userId = req.user?.sub;
     const email = req.user?.email;
     const metadata = req.user?.user_metadata;
@@ -34,6 +35,17 @@ export class ProfilesController {
     return profile;
   }
 
+  @Patch('notification-prefs')
+  @UseGuards(SupabaseAuthGuard)
+  @ApiOperation({ summary: 'Update notification preferences' })
+  async updateNotificationPrefs(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: UpdateNotificationPrefsDto,
+  ): Promise<unknown> {
+    const userId = req.user?.sub;
+    return this.profilesService.updateNotificationPrefs(userId, dto);
+  }
+
   @Patch()
   @UseGuards(SupabaseAuthGuard)
   @ApiOperation({ summary: 'Update user profile' })
@@ -41,7 +53,7 @@ export class ProfilesController {
   async updateProfile(
     @Req() req: AuthenticatedRequest,
     @Body() updateProfileDto: UpdateProfileDto
-  ) {
+  ): Promise<unknown> {
     const userId = req.user?.sub;
     const profile = await this.profilesService.updateProfile(userId, updateProfileDto);
     return profile;

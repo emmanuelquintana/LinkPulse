@@ -1,14 +1,41 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { fetchApi, getErrorMessage } from '@/lib/api';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { fetchApi } from '@/lib/api';
+import { localizeApiError } from "@/lib/api-errors";
 import { fileToCompressedAvatar } from '@/lib/image';
+import { createClient } from '@/utils/supabase/client';
 import { useTranslation } from '@/i18n/I18nProvider';
 import { sileo } from 'sileo';
 import type { Profile } from '@/types/models';
 
+type PrefKey = 'links' | 'campaigns' | 'team' | 'billing';
+
+interface BillingWorkspace {
+  id: string;
+  name: string;
+  plan?: string;
+  ownerUserId?: string;
+  stripeCustomerId?: string | null;
+  subscription?: {
+    status: string;
+    currentPeriodEnd: string;
+    cancelAtPeriodEnd: boolean;
+  } | null;
+}
+
+const DEFAULT_PREFS: Record<PrefKey, boolean> = {
+  links: true,
+  campaigns: true,
+  team: true,
+  billing: true,
+};
+
 export default function ProfilePage() {
   const t = useTranslation();
+  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -19,6 +46,21 @@ export default function ProfilePage() {
     avatarUrl: ''
   });
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Security
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [signingOutAll, setSigningOutAll] = useState(false);
+
+  // Notifications
+  const [prefs, setPrefs] = useState<Record<PrefKey, boolean>>(DEFAULT_PREFS);
+  const [prefsSaving, setPrefsSaving] = useState(false);
+
+  // Billing
+  const [billingWorkspaces, setBillingWorkspaces] = useState<BillingWorkspace[]>([]);
+  const [portalLoadingId, setPortalLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProfile() {
@@ -31,14 +73,93 @@ export default function ProfilePage() {
           lastName: data.lastName || '',
           avatarUrl: data.avatarUrl || ''
         });
+        setPrefs({ ...DEFAULT_PREFS, ...(data.notificationPrefs ?? {}) });
       } catch (err) {
         console.error("Failed to load profile", err);
       } finally {
         setLoading(false);
       }
     }
+    async function loadWorkspaces() {
+      try {
+        const res = await fetchApi('/workspaces');
+        const data = res?.data ?? res;
+        if (Array.isArray(data)) setBillingWorkspaces(data);
+      } catch (err) {
+        console.error('Failed to load workspaces for billing summary', err);
+      }
+    }
     loadProfile();
+    loadWorkspaces();
   }, []);
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      sileo.error({ title: t.profile.secPasswordTooShort });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      sileo.error({ title: t.profile.secPasswordMismatch });
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      sileo.success({ title: t.profile.secPasswordUpdated });
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      sileo.error({ title: t.profile.secPasswordError, description: localizeApiError(err, t) });
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
+  const handleSignOutAll = async () => {
+    setSigningOutAll(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut({ scope: 'global' });
+      router.push('/login');
+      router.refresh();
+    } catch (err) {
+      console.error('Failed to sign out everywhere', err);
+      setSigningOutAll(false);
+    }
+  };
+
+  const handleSavePrefs = async () => {
+    setPrefsSaving(true);
+    try {
+      await fetchApi('/profiles/notification-prefs', {
+        method: 'PATCH',
+        body: JSON.stringify(prefs),
+      });
+      sileo.success({ title: t.profile.notifSaved });
+    } catch (err) {
+      sileo.error({ title: t.profile.notifSaveError, description: localizeApiError(err, t) });
+    } finally {
+      setPrefsSaving(false);
+    }
+  };
+
+  const handleOpenPortal = async (workspaceId: string) => {
+    setPortalLoadingId(workspaceId);
+    try {
+      const res = await fetchApi('/billing/portal', {
+        method: 'POST',
+        body: JSON.stringify({ workspaceId }),
+      });
+      const data = res?.data ?? res;
+      if (data?.url) window.location.href = data.url;
+    } catch (err) {
+      sileo.error({ title: t.profile.billPortalError, description: localizeApiError(err, t) });
+      setPortalLoadingId(null);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +179,7 @@ export default function ProfilePage() {
       // Dispatch custom event for sidebar sync
       window.dispatchEvent(new CustomEvent('profile-updated', { detail: updatedProfile }));
     } catch (err: unknown) {
-      const text = getErrorMessage(err) || t.profile.updateError;
+      const text = localizeApiError(err, t) || t.profile.updateError;
       setMessage({ type: 'error', text });
       sileo.error({ title: text });
     } finally {
@@ -264,26 +385,209 @@ export default function ProfilePage() {
                 </div>
               </form>
             </div>
+          ) : activeSection === 'security' ? (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {/* Cambiar contraseña */}
+              <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8">
+                <h3 className="text-xl font-black text-gray-900 tracking-tight">{t.profile.secPasswordTitle}</h3>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1 mb-8">{t.profile.secPasswordHint}</p>
+                <form onSubmit={handlePasswordUpdate} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest block px-1">{t.profile.secNewPassword}</label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          autoComplete="new-password"
+                          className="w-full h-14 px-6 pr-12 bg-gray-50 border border-gray-100 rounded-[1.2rem] text-sm font-bold text-gray-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest block px-1">{t.profile.secConfirmPassword}</label>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        autoComplete="new-password"
+                        className="w-full h-14 px-6 bg-gray-50 border border-gray-100 rounded-[1.2rem] text-sm font-bold text-gray-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end pt-4 border-t border-gray-50">
+                    <button
+                      type="submit"
+                      disabled={passwordSaving || !newPassword || !confirmPassword}
+                      className="h-12 px-8 bg-indigo-600 text-white rounded-[1.2rem] text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-100 flex items-center gap-2"
+                    >
+                      {passwordSaving ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <span className="material-symbols-outlined text-[18px]">lock_reset</span>
+                      )}
+                      {t.profile.secUpdatePassword}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Sesiones */}
+              <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8">
+                <h3 className="text-xl font-black text-gray-900 tracking-tight">{t.profile.secSessionsTitle}</h3>
+                <p className="text-sm font-medium text-gray-500 mt-2 max-w-md">{t.profile.secSessionsText}</p>
+                <button
+                  onClick={handleSignOutAll}
+                  disabled={signingOutAll}
+                  className="mt-6 h-12 px-6 bg-gray-900 text-white rounded-[1.2rem] text-xs font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {signingOutAll ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <span className="material-symbols-outlined text-[18px]">logout</span>
+                  )}
+                  {t.profile.secSignOutAll}
+                </button>
+              </div>
+            </div>
+          ) : activeSection === 'notifications' ? (
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h3 className="text-xl font-black text-gray-900 tracking-tight">{t.profile.notifPrefsTitle}</h3>
+              <p className="text-sm font-medium text-gray-500 mt-2 mb-8">{t.profile.notifPrefsText}</p>
+
+              <div className="space-y-3">
+                {(
+                  [
+                    { key: 'links', icon: 'link', label: t.profile.notifLinks, desc: t.profile.notifLinksDesc },
+                    { key: 'campaigns', icon: 'campaign', label: t.profile.notifCampaigns, desc: t.profile.notifCampaignsDesc },
+                    { key: 'team', icon: 'group', label: t.profile.notifTeam, desc: t.profile.notifTeamDesc },
+                    { key: 'billing', icon: 'payments', label: t.profile.notifBilling, desc: t.profile.notifBillingDesc },
+                  ] as Array<{ key: PrefKey; icon: string; label: string; desc: string }>
+                ).map((row) => (
+                  <label
+                    key={row.key}
+                    className="flex items-center justify-between gap-4 bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4 cursor-pointer hover:bg-gray-100/70 transition-colors"
+                  >
+                    <span className="flex items-center gap-4 min-w-0">
+                      <span className="h-10 w-10 rounded-xl bg-white border border-gray-100 text-indigo-600 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-[20px]">{row.icon}</span>
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-black text-gray-900">{row.label}</span>
+                        <span className="block text-xs font-medium text-gray-400 truncate">{row.desc}</span>
+                      </span>
+                    </span>
+                    {/* Toggle */}
+                    <span
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPrefs((p) => ({ ...p, [row.key]: !p[row.key] }));
+                      }}
+                      className={`relative h-7 w-12 rounded-full transition-colors shrink-0 ${prefs[row.key] ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                    >
+                      <span
+                        className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${prefs[row.key] ? 'left-6' : 'left-1'}`}
+                      />
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <p className="flex items-center gap-2 text-xs font-medium text-gray-400 mt-6">
+                <span className="material-symbols-outlined text-[16px]">info</span>
+                {t.profile.notifSystemNote}
+              </p>
+
+              <div className="flex justify-end pt-6 border-t border-gray-50 mt-6">
+                <button
+                  onClick={handleSavePrefs}
+                  disabled={prefsSaving}
+                  className="h-12 px-8 bg-indigo-600 text-white rounded-[1.2rem] text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-100 flex items-center gap-2"
+                >
+                  {prefsSaving ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <span className="material-symbols-outlined text-[18px]">save</span>
+                  )}
+                  {t.profile.notifSave}
+                </button>
+              </div>
+            </div>
           ) : (
-            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-12 text-center flex flex-col items-center justify-center min-h-[400px] animate-in fade-in zoom-in-95 duration-300">
-               <div className="h-20 w-20 rounded-[2rem] bg-gray-50 flex items-center justify-center mb-6">
-                 <span className="material-symbols-outlined text-4xl text-gray-200">construction</span>
-               </div>
-               <h3 className="text-xl font-black text-gray-900 tracking-tight">
-                 {(activeSection === 'security'
-                   ? t.profile.security
-                   : activeSection === 'notifications'
-                     ? t.profile.notifications
-                     : t.profile.billing)}{' '}
-                 {t.profile.comingSoon}
-               </h3>
-               <p className="text-sm font-bold text-gray-400 max-w-[300px] mt-2">{t.profile.comingSoonText}</p>
-               <button
-                onClick={() => setActiveSection('profile')}
-                className="mt-8 text-xs font-black text-indigo-600 uppercase tracking-widest hover:underline"
-               >
-                 {t.profile.goBackProfile}
-               </button>
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h3 className="text-xl font-black text-gray-900 tracking-tight">{t.profile.billSummaryTitle}</h3>
+              <p className="text-sm font-medium text-gray-500 mt-2 mb-8">{t.profile.billSummaryText}</p>
+
+              <div className="space-y-4">
+                {billingWorkspaces.map((ws) => {
+                  const sub = ws.subscription;
+                  const isActive = sub?.status === 'active' || sub?.status === 'trialing';
+                  return (
+                    <div
+                      key={ws.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-gray-100 rounded-2xl px-5 py-4"
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="h-11 w-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black shrink-0">
+                          {ws.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-black text-gray-900 truncate">{ws.name}</p>
+                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-lg shrink-0 ${ws.plan === 'PRO' ? 'bg-indigo-600 text-white' : ws.plan === 'ENTERPRISE' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                              {ws.plan}
+                            </span>
+                          </div>
+                          <p className="text-xs font-bold text-gray-400 mt-0.5">
+                            {isActive && sub ? (
+                              <>
+                                <span className="text-emerald-600">{t.profile.billActive}</span>
+                                {' · '}
+                                {sub.cancelAtPeriodEnd ? t.profile.billCancelsAt : t.profile.billRenews}{' '}
+                                {new Date(sub.currentPeriodEnd).toLocaleDateString()}
+                              </>
+                            ) : (
+                              t.profile.billNoSub
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      {ws.stripeCustomerId && ws.ownerUserId === profile?.id && (
+                        <button
+                          onClick={() => handleOpenPortal(ws.id)}
+                          disabled={portalLoadingId === ws.id}
+                          className="h-10 px-5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shrink-0"
+                        >
+                          {portalLoadingId === ws.id ? (
+                            <div className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
+                          ) : (
+                            <span className="material-symbols-outlined text-[16px]">payments</span>
+                          )}
+                          {t.profile.billManage}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end pt-6 border-t border-gray-50 mt-6">
+                <Link
+                  href="/dashboard/billing"
+                  className="h-12 px-8 bg-gray-900 text-white rounded-[1.2rem] text-xs font-black uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  {t.profile.billGoTo}
+                </Link>
+              </div>
             </div>
           )}
 

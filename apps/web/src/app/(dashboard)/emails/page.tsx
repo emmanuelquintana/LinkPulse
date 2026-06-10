@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { fetchApi, getErrorMessage } from '@/lib/api';
+import { fetchApi } from '@/lib/api';
+import { localizeApiError } from "@/lib/api-errors";
 import { Mail, Plus, Send, BarChart2, Clock, CheckCircle, X, FileText, Settings, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from '@/i18n/I18nProvider';
@@ -89,7 +90,7 @@ export default function EmailsPage() {
       sileo.success({ title: format(t.emails.sentToSubscribers, { n: result?.data?.sent ?? 0 }) });
       loadCampaigns();
     } catch (err: unknown) {
-      sileo.error({ title: t.emails.sendFailed, description: getErrorMessage(err) });
+      sileo.error({ title: t.emails.sendFailed, description: localizeApiError(err, t) });
     } finally {
       setSending(null);
     }
@@ -270,7 +271,7 @@ function CreateCampaignModal({
       sileo.success({ title: t.toasts.campaignCreated });
       onSuccess();
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || t.emails.createError);
+      setError(localizeApiError(err, t) || t.emails.createError);
     } finally {
       setSaving(false);
     }

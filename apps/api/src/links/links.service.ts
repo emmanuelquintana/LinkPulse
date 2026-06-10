@@ -133,8 +133,10 @@ export class LinksService {
         take: limit,
         orderBy: { createdAt: "desc" },
         include: {
-          workspace: true,
-          campaign: true,
+          // Sólo lo que la tabla necesita: con límites de hasta 1000 ítems
+          // el workspace completo inflaría mucho la respuesta.
+          workspace: { select: { id: true, name: true, plan: true } },
+          campaign: { select: { id: true, name: true } },
           _count: {
             select: { clickEvents: true },
           },

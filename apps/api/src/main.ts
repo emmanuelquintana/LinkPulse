@@ -55,6 +55,10 @@ async function bootstrap() {
       },
       "bearer",
     )
+    .addApiKey(
+      { type: "apiKey", name: "x-api-key", in: "header" },
+      "api-key",
+    )
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);

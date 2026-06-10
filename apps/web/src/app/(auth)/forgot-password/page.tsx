@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
-import { getErrorMessage } from '@/lib/api';
+import { localizeApiError } from '@/lib/api-errors';
 import { useTranslation } from '@/i18n/I18nProvider';
 
 export default function ForgotPasswordPage() {
@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
 
       setMessage(t.auth.resetSent);
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || t.auth.resetError);
+      setError(localizeApiError(err, t) || t.auth.resetError);
     } finally {
       setLoading(false);
     }

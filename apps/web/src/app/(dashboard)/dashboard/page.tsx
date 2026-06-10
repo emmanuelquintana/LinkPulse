@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { localizeApiError } from "@/lib/api-errors";
 import Link from "next/link";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { format } from "@/i18n/translations";
 import { sileo } from "sileo";
-import { getErrorMessage } from "@/lib/api";
 import { useConfirm } from "@/components/ConfirmProvider";
 
 interface Link {
@@ -99,7 +99,7 @@ export default function DashboardHomePage() {
       loadData();
     } catch (err: unknown) {
       console.error("Failed to archive link", err);
-      sileo.error({ title: t.common.error, description: getErrorMessage(err) });
+      sileo.error({ title: t.common.error, description: localizeApiError(err, t) });
     }
     setOpenMenuId(null);
   };

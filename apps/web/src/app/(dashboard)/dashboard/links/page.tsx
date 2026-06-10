@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import { fetchApi } from "@/lib/api";
+import { localizeApiError } from "@/lib/api-errors";
 import Link from "next/link";
 import EditLinkModal from "@/components/EditLinkModal";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { format } from "@/i18n/translations";
 import { sileo } from "sileo";
-import { getErrorMessage } from "@/lib/api";
 import { useConfirm } from "@/components/ConfirmProvider";
 
 interface LinkData {
@@ -21,7 +21,10 @@ interface LinkData {
   createdAt: string;
   workspaceId: string;
   campaignId: string | null;
+  workspace?: { id: string; name: string; plan?: string } | null;
 }
+
+const PAGE_SIZES = [10, 100, 1000] as const;
 
 export default function LinksPage() {
   const t = useTranslation();
@@ -33,7 +36,7 @@ export default function LinksPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
-  const limit = 10;
+  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
 
   // Modals & Actions State
   const [editingLink, setEditingLink] = useState<LinkData | null>(null);
@@ -67,7 +70,13 @@ export default function LinksPage() {
 
   useEffect(() => {
     loadLinks(currentPage);
-  }, [currentPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, limit]);
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setCurrentPage(1);
+  };
 
   const handleCopy = (link: LinkData) => {
     const url = `localhost:3002/${link.customAlias || link.shortCode}`;
@@ -92,7 +101,7 @@ export default function LinksPage() {
       loadLinks(currentPage);
     } catch (err: unknown) {
       console.error("Failed to archive link", err);
-      sileo.error({ title: t.common.error, description: getErrorMessage(err) });
+      sileo.error({ title: t.common.error, description: localizeApiError(err, t) });
     }
     setOpenMenuId(null);
   };
@@ -141,10 +150,11 @@ export default function LinksPage() {
               <table className="w-full text-sm text-left border-collapse">
                 <thead className="text-[0.7rem] text-gray-400 uppercase font-black tracking-[0.1em] border-b border-gray-50 bg-gray-50/30">
                   <tr>
-                    <th className="px-8 py-5 w-1/3 first:rounded-tl-3xl">
+                    <th className="px-8 py-5 w-1/4 first:rounded-tl-3xl">
                       {t.linksPage.shortLink}
                     </th>
-                    <th className="px-8 py-5 w-1/3 text-center">{t.linksPage.destination}</th>
+                    <th className="px-8 py-5 w-1/4 text-center">{t.linksPage.destination}</th>
+                    <th className="px-8 py-5 text-center">{t.linksPage.workspaceCol}</th>
                     <th className="px-8 py-5 text-center">{t.linksPage.clicks}</th>
                     <th className="px-8 py-5 text-center">{t.linksPage.created}</th>
                     <th className="px-8 py-5 text-right whitespace-nowrap last:rounded-tr-3xl">
@@ -160,22 +170,30 @@ export default function LinksPage() {
                         className="hover:bg-indigo-50/30 transition-colors group"
                       >
                         <td className="px-8 py-5">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(link)}
+                            title={t.linksPage.copyLink}
+                            className="flex items-center gap-3 text-left cursor-pointer group/copy"
+                          >
+                            <div className="h-10 w-10 shrink-0 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-all">
                               <span className="material-symbols-outlined text-[20px]">
                                 link
                               </span>
                             </div>
                             <div>
-                              <p className="font-bold text-gray-900 mb-0.5">
+                              <p className="font-bold text-gray-900 mb-0.5 flex items-center gap-1.5 group-hover/copy:text-indigo-600 transition-colors">
                                 localhost:3002/
                                 {link.customAlias || link.shortCode}
+                                <span className="material-symbols-outlined text-[16px] text-gray-300 opacity-0 group-hover/copy:opacity-100 group-hover/copy:text-indigo-400 transition-opacity">
+                                  content_copy
+                                </span>
                               </p>
                               <p className="text-[0.7rem] text-gray-400 font-bold uppercase tracking-wider">
                                 {link.title || t.linksPage.untitledLink}
                               </p>
                             </div>
-                          </div>
+                          </button>
                         </td>
                         <td className="px-8 py-5">
                           <div className="flex justify-center">
@@ -186,6 +204,21 @@ export default function LinksPage() {
                               {link.originalUrl}
                             </p>
                           </div>
+                        </td>
+                        <td className="px-8 py-5 text-center">
+                          {link.workspace ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-700 font-bold text-xs max-w-[160px]"
+                              title={link.workspace.name}
+                            >
+                              <span className="material-symbols-outlined text-[14px] shrink-0">
+                                group_work
+                              </span>
+                              <span className="truncate">{link.workspace.name}</span>
+                            </span>
+                          ) : (
+                            <span className="text-gray-300 font-bold text-xs">—</span>
+                          )}
                         </td>
                         <td className="px-8 py-5 text-center">
                           <span className="px-4 py-1.5 rounded-full bg-green-50 text-green-700 font-black text-xs">
@@ -255,7 +288,7 @@ export default function LinksPage() {
                   ) : (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-8 py-20 text-center text-gray-500"
                       >
                         <div className="flex flex-col items-center gap-4">
@@ -290,8 +323,8 @@ export default function LinksPage() {
             </div>
 
             {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+            {totalElements > 0 && (
+              <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-4">
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                   {t.linksPage.showing}{" "}
                   <span className="text-gray-900">
@@ -304,28 +337,51 @@ export default function LinksPage() {
                   {t.linksPage.of} <span className="text-gray-900">{totalElements}</span>{" "}
                   {t.linksPage.linksWord}
                 </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((p) => p - 1)}
-                    className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    <span className="material-symbols-outlined">
-                      chevron_left
+
+                <div className="flex items-center gap-4">
+                  {/* Page size selector */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center rounded-xl bg-white border border-gray-200 p-1">
+                      {PAGE_SIZES.map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => handleLimitChange(size)}
+                          className={`px-3 h-8 rounded-lg text-xs font-black transition-all ${limit === size ? "bg-indigo-600 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50"}`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden sm:inline">
+                      {t.linksPage.perPage}
                     </span>
-                  </button>
-                  <div className="flex items-center px-4 h-10 rounded-xl bg-white border border-gray-200 text-sm font-black text-gray-900">
-                    {currentPage} / {totalPages}
                   </div>
-                  <button
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                    className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    <span className="material-symbols-outlined">
-                      chevron_right
-                    </span>
-                  </button>
+
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage((p) => p - 1)}
+                        className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        <span className="material-symbols-outlined">
+                          chevron_left
+                        </span>
+                      </button>
+                      <div className="flex items-center px-4 h-10 rounded-xl bg-white border border-gray-200 text-sm font-black text-gray-900">
+                        {currentPage} / {totalPages}
+                      </div>
+                      <button
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage((p) => p + 1)}
+                        className="p-2 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      >
+                        <span className="material-symbols-outlined">
+                          chevron_right
+                        </span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

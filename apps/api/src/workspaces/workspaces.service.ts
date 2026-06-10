@@ -52,11 +52,36 @@ export class WorkspacesService {
     // Ensure profile exists in our DB before creating workspace (foreign key constraint)
     await this.profilesService.bootstrapProfile(userId, email);
 
+    // Límite por plan: FREE permite 1 workspace, PRO permite 2 y ENTERPRISE
+    // (suscripción por empresa) permite workspaces ilimitados.
+    const ownedWorkspaces = await this.prisma.workspace.findMany({
+      where: { ownerUserId: userId },
+      select: { plan: true },
+    });
+    const hasEnterprise = ownedWorkspaces.some((w) => w.plan === "ENTERPRISE");
+    if (!hasEnterprise) {
+      const hasPro = ownedWorkspaces.some((w) => w.plan === "PRO");
+      const limit = hasPro ? 2 : 1;
+      if (ownedWorkspaces.length >= limit) {
+        // El código LP_WORKSPACE_LIMIT permite al frontend mostrar un mensaje
+        // localizado; el message queda como fallback descriptivo.
+        throw new ForbiddenException({
+          code: "LP_WORKSPACE_LIMIT",
+          message: hasPro
+            ? "Workspace limit reached: the PRO plan allows 2 workspaces. Upgrade to the ENTERPRISE plan (one subscription per company) for unlimited workspaces."
+            : "Workspace limit reached: the FREE plan allows 1 workspace. Upgrade to PRO for 2 workspaces, or to ENTERPRISE (one subscription per company) for unlimited workspaces.",
+          data: { plan: hasPro ? "PRO" : "FREE", limit },
+        });
+      }
+    }
+
     const workspace = await this.prisma.$transaction(async (tx) => {
       const workspace = await tx.workspace.create({
         data: {
           name,
           ownerUserId: userId,
+          // Los workspaces nuevos de un dueño ENTERPRISE heredan el plan.
+          ...(hasEnterprise ? { plan: "ENTERPRISE" as const } : {}),
           members: {
             create: {
               userId,
@@ -106,6 +131,13 @@ export class WorkspacesService {
             },
           },
           orderBy: { createdAt: "asc" },
+        },
+        subscription: {
+          select: {
+            status: true,
+            currentPeriodEnd: true,
+            cancelAtPeriodEnd: true,
+          },
         },
         _count: {
           select: { members: true, links: true },
