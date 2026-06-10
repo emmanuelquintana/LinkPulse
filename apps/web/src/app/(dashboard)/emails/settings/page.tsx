@@ -11,7 +11,6 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  XCircle,
   AlertTriangle,
   ChevronDown,
 } from 'lucide-react';
@@ -27,6 +26,7 @@ interface EmailSettings {
   smtpUser: string;
   smtpPass: string;
   smtpSecure: boolean;
+  resendApiKey: string;
   fromEmail: string;
   fromName: string;
 }
@@ -58,14 +58,15 @@ function EmailSettingsContent() {
     smtpUser: '',
     smtpPass: '',
     smtpSecure: false,
+    resendApiKey: '',
     fromEmail: '',
     fromName: '',
   });
   const [showPass, setShowPass] = useState(false);
+  const [showResendKey, setShowResendKey] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testEmail, setTestEmail] = useState('');
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [preset, setPreset] = useState('Hostinger');
 
@@ -98,6 +99,7 @@ function EmailSettingsContent() {
             smtpUser: s.smtpUser ?? '',
             smtpPass: s.smtpPass ?? '',
             smtpSecure: s.smtpSecure ?? false,
+            resendApiKey: s.resendApiKey ?? '',
             fromEmail: s.fromEmail ?? '',
             fromName: s.fromName ?? '',
           });
@@ -135,14 +137,12 @@ function EmailSettingsContent() {
   async function handleTest() {
     if (!testEmail) return;
     setTesting(true);
-    setTestResult(null);
     try {
       const data = await fetchApi(`/email-settings/test?workspaceId=${selectedWorkspace}`, {
         method: 'POST',
         body: JSON.stringify({ to: testEmail }),
       });
       const result = (data.data || data) as { success: boolean; message: string };
-      setTestResult(result);
       if (result.success) {
         sileo.success({ title: t.toasts.testEmailSent });
       } else {
@@ -150,7 +150,6 @@ function EmailSettingsContent() {
       }
     } catch (err: unknown) {
       const message = getErrorMessage(err) || t.emailSettings.testFailed;
-      setTestResult({ success: false, message });
       sileo.error({ title: t.emailSettings.testFailed, description: message });
     } finally {
       setTesting(false);
@@ -297,16 +296,38 @@ function EmailSettingsContent() {
 
         {/* Resend Config */}
         {provider === 'RESEND' && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
               <Mail className="w-4 h-4 text-indigo-600" />
               {t.emailSettings.resendConfiguration}
             </h2>
-            <p className="text-sm text-gray-500 mb-4">
-              {t.emailSettings.resendEnvHint1} <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">.env</code> {t.emailSettings.resendEnvHint2} <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">RESEND_API_KEY</code>.
-            </p>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                {t.emailSettings.resendApiKeyLabel}
+              </label>
+              <div className="relative">
+                <input
+                  type={showResendKey ? 'text' : 'password'}
+                  value={form.resendApiKey}
+                  onChange={(e) => setForm({ ...form, resendApiKey: e.target.value })}
+                  placeholder="re_xxxxxxxxxxxxxxxx"
+                  autoComplete="off"
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowResendKey(!showResendKey)}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-700"
+                >
+                  {showResendKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">{t.emailSettings.resendApiKeyFieldHint}</p>
+            </div>
+
             <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 text-sm text-indigo-700">
-              {t.emailSettings.resendApiKeyCta} <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="font-bold underline">resend.com</a> {t.emailSettings.resendApiKeyTail}
+              {t.emailSettings.resendApiKeyCta} <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="font-bold underline">resend.com</a> {t.emailSettings.resendApiKeyTail}
             </div>
           </div>
         )}
@@ -378,12 +399,6 @@ function EmailSettingsContent() {
             {testing ? t.emails.sendingShort : t.emailSettings.sendTest}
           </button>
         </div>
-        {testResult && (
-          <div className={`mt-3 flex items-center gap-2 text-sm font-semibold ${testResult.success ? 'text-green-600' : 'text-red-600'}`}>
-            {testResult.success ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-            {testResult.message}
-          </div>
-        )}
       </div>
     </div>
   );

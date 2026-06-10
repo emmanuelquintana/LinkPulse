@@ -18,6 +18,7 @@ interface MemberProfile {
   email?: string;
   firstName?: string | null;
   lastName?: string | null;
+  avatarUrl?: string | null;
 }
 
 interface Member {
@@ -386,8 +387,17 @@ export default function WorkspaceMembersModal({
                   >
                     <div className="flex items-center justify-between gap-3 mb-4">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">
-                          {displayName(m).charAt(0).toUpperCase()}
+                        <div className="h-10 w-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black overflow-hidden shrink-0">
+                          {m.user?.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={m.user.avatarUrl}
+                              alt={displayName(m)}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            displayName(m).charAt(0).toUpperCase()
+                          )}
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-black text-gray-900 truncate">

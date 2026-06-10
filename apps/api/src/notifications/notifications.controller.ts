@@ -33,7 +33,7 @@ export class NotificationsController {
   findAll(
     @Req() req: AuthenticatedRequest,
     @Query() query: NotificationQueryDto,
-  ) {
+  ): Promise<unknown> {
     const userId = req.user?.sub;
     return this.notificationsService.findAllForUser(userId, query);
   }
@@ -58,7 +58,10 @@ export class NotificationsController {
   @ApiOperation({ summary: "Mark one notification as read" })
   @ApiParam({ name: "id", description: "Notification UUID" })
   @ApiOkResponseWrapped(NotificationDto)
-  markAsRead(@Req() req: AuthenticatedRequest, @Param("id") id: string) {
+  markAsRead(
+    @Req() req: AuthenticatedRequest,
+    @Param("id") id: string,
+  ): Promise<unknown> {
     const userId = req.user?.sub;
     return this.notificationsService.markAsRead(userId, id);
   }

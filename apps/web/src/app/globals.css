@@ -66,6 +66,18 @@
 
 /* Removed @layer base to prioritize standard Tailwind utilities like border-gray-200 as requested by the mockup */
 
+/* Tailwind v4 ya no aplica cursor:pointer a los botones por defecto.
+   Lo restauramos para no romper la UX (la manita en elementos clicables). */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  select:not(:disabled),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+}
+
 @layer utilities {
   .animate-cube-1 {
     animation: cube-float 20s infinite linear;

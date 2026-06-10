@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { NotificationType } from "@linkpulse/db";
+import { NotificationType, Prisma } from "@linkpulse/db";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { NotificationQueryDto } from "./dto/notification-query.dto.js";
 
@@ -10,6 +10,7 @@ interface CreateNotificationInput {
   title: string;
   body?: string | null;
   href?: string | null;
+  metadata?: { key: string; params: Record<string, string> } | null;
 }
 
 @Injectable()
@@ -25,6 +26,7 @@ export class NotificationsService {
         title: input.title,
         body: input.body ?? null,
         href: input.href ?? null,
+        metadata: input.metadata ?? Prisma.JsonNull,
       },
     });
   }
@@ -55,6 +57,7 @@ export class NotificationsService {
         title: input.title,
         body: input.body ?? null,
         href: input.href ?? null,
+        metadata: input.metadata ?? Prisma.JsonNull,
       })),
     });
   }

@@ -192,7 +192,9 @@ export class EmailCampaignsService {
       },
     );
 
-    const pixel = `<img src="${redirectorUrl}/t/o/${emailLogId}" width="1" height="1" style="display:none;border:0;" alt="" />`;
+    // Pixel de apertura. Evitamos display:none porque algunos clientes no
+    // cargan imágenes ocultas; un 1x1 con opacidad 0 se carga en más clientes.
+    const pixel = `<img src="${redirectorUrl}/t/o/${emailLogId}" width="1" height="1" alt="" style="width:1px;height:1px;border:0;opacity:0;overflow:hidden;" />`;
     html = html.includes('</body>') ? html.replace('</body>', `${pixel}</body>`) : html + pixel;
 
     const unsubUrl = `${redirectorUrl}/t/u/${emailLogId}`;

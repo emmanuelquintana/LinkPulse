@@ -11,8 +11,14 @@ import { useConfirm } from "@/components/ConfirmProvider";
 
 interface WorkspaceMember {
   id: string;
-  email: string;
   role: "ADMIN" | "MEMBER" | "OWNER";
+  user?: {
+    id?: string;
+    email?: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    avatarUrl?: string | null;
+  };
 }
 
 interface Workspace {
@@ -20,10 +26,19 @@ interface Workspace {
   name: string;
   ownerId?: string; // Backwards compatibility
   ownerUserId?: string;
+  members?: WorkspaceMember[];
   _count?: {
     members: number;
     links: number;
   };
+}
+
+function memberLabel(m: WorkspaceMember) {
+  const name = [m.user?.firstName, m.user?.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  return name || m.user?.email || "?";
 }
 
 export default function WorkspacesPage() {
@@ -253,14 +268,29 @@ export default function WorkspacesPage() {
                     </span>
                   </Link>
                   <div className="flex -space-x-2">
-                    {[1, 2].map((i) => (
+                    {(ws.members ?? []).slice(0, 3).map((m) => (
                       <div
-                        key={i}
-                        className="h-8 w-8 rounded-full border-2 border-white bg-indigo-100 flex items-center justify-center text-[10px] font-black text-indigo-600 ring-1 ring-gray-100"
+                        key={m.id}
+                        title={memberLabel(m)}
+                        className="h-8 w-8 rounded-full border-2 border-white bg-indigo-100 flex items-center justify-center text-[10px] font-black text-indigo-600 ring-1 ring-gray-100 overflow-hidden"
                       >
-                        U{i}
+                        {m.user?.avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={m.user.avatarUrl}
+                            alt={memberLabel(m)}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          memberLabel(m).charAt(0).toUpperCase()
+                        )}
                       </div>
                     ))}
+                    {(ws._count?.members ?? 0) > 3 && (
+                      <div className="h-8 w-8 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-[10px] font-black text-gray-500 ring-1 ring-gray-100">
+                        +{(ws._count?.members ?? 0) - 3}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
