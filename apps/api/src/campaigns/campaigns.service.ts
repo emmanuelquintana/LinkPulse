@@ -6,6 +6,7 @@ import {
 import { PrismaService } from "../prisma/prisma.service.js";
 import { CreateCampaignDto } from "./dto/create-campaign.dto.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
+import { notif } from "../notifications/notification-messages.js";
 
 @Injectable()
 export class CampaignsService {
@@ -40,20 +41,12 @@ export class CampaignsService {
     await this.notificationsService.createForUser({
       userId,
       workspaceId,
-      type: "CAMPAIGN_CREATED",
-      title: "Campaign created",
-      body: `${campaign.name} is ready for new links.`,
-      href: "/dashboard/campaigns",
+      ...notif.campaignCreatedSelf(campaign.name),
     });
 
     await this.notificationsService.createForWorkspaceMembers(
       workspaceId,
-      {
-        type: "CAMPAIGN_CREATED",
-        title: "New campaign in workspace",
-        body: `${campaign.name} is ready for new links.`,
-        href: "/dashboard/campaigns",
-      },
+      notif.campaignCreatedWorkspace(campaign.name),
       [userId],
     );
 

@@ -22,20 +22,38 @@ export class EmailSettingsService {
     await this.assertOwnerOrAdmin(userId, workspaceId);
     const settings = await this.prisma.emailSettings.findUnique({ where: { workspaceId } });
     if (!settings) return null;
-    // Never return the raw password
-    return { ...settings, smtpPass: settings.smtpPass ? '••••••••' : null };
+    // Never return raw secrets
+    return {
+      ...settings,
+      smtpPass: settings.smtpPass ? '••••••••' : null,
+      resendApiKey: settings.resendApiKey ? '••••••••' : null,
+    };
   }
 
   async upsert(userId: string, workspaceId: string, dto: UpsertEmailSettingsDto) {
     await this.assertOwnerOrAdmin(userId, workspaceId);
 
+    const MASK = '••••••••';
+    const isResend = dto.provider === 'RESEND';
+
+    // Campos segregados por proveedor: con RESEND limpiamos los de SMTP (y
+    // viceversa) para no mezclar datos ni filtrar secretos en campos ajenos.
     const data = {
       provider: dto.provider,
-      smtpHost: dto.smtpHost ?? null,
+      smtpHost: isResend ? null : dto.smtpHost ?? null,
       smtpPort: dto.smtpPort ?? 587,
-      smtpUser: dto.smtpUser ?? null,
-      smtpPass: dto.smtpPass && dto.smtpPass !== '••••••••' ? dto.smtpPass : undefined,
-      smtpSecure: dto.smtpSecure ?? false,
+      smtpUser: isResend ? null : dto.smtpUser ?? null,
+      smtpPass: isResend
+        ? null
+        : dto.smtpPass && dto.smtpPass !== MASK
+          ? dto.smtpPass
+          : undefined,
+      smtpSecure: isResend ? false : dto.smtpSecure ?? false,
+      resendApiKey: isResend
+        ? dto.resendApiKey && dto.resendApiKey !== MASK
+          ? dto.resendApiKey
+          : undefined
+        : null,
       fromEmail: dto.fromEmail ?? null,
       fromName: dto.fromName ?? null,
     };
@@ -46,7 +64,11 @@ export class EmailSettingsService {
       update: data,
     });
 
-    return { ...settings, smtpPass: settings.smtpPass ? '••••••••' : null };
+    return {
+      ...settings,
+      smtpPass: settings.smtpPass ? '••••••••' : null,
+      resendApiKey: settings.resendApiKey ? '••••••••' : null,
+    };
   }
 
   async sendTestEmail(userId: string, workspaceId: string, to: string): Promise<{ success: boolean; message: string }> {

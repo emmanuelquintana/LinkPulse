@@ -431,6 +431,8 @@ const es = {
     resendConfiguration: "Configuración de Resend",
     resendEnvHint1: "Configura tu API key de Resend en el archivo",
     resendEnvHint2: "como",
+    resendApiKeyLabel: "API key de Resend",
+    resendApiKeyFieldHint: "Se guarda por espacio de trabajo y nunca se muestra de vuelta. Tiene prioridad sobre la del servidor.",
     resendApiKeyCta: "Obtén tu API key gratis en",
     resendApiKeyTail: "— 3.000 correos/mes gratis.",
     defaultSender: "Remitente predeterminado",
@@ -555,6 +557,40 @@ const es = {
     minutesAgo: "hace {n} min",
     hoursAgo: "hace {n} h",
     daysAgo: "hace {n} d",
+  },
+  notifTemplates: {
+    workspaceCreated: {
+      title: "Espacio de trabajo creado",
+      body: "{name} está listo para enlaces y campañas.",
+    },
+    memberAdded: {
+      title: "Te agregaron a un espacio",
+      body: "Te agregaron a {workspace} como {role}.",
+    },
+    permissionsChanged: {
+      title: "Tus permisos cambiaron",
+      body: "Se actualizaron tus permisos en {workspace}. Recarga la página para aplicarlos.",
+    },
+    linkCreatedSelf: {
+      title: "Enlace creado",
+      body: "{name} está listo para compartir.",
+    },
+    linkCreatedWorkspace: {
+      title: "Nuevo enlace en el espacio",
+      body: "{name} fue creado.",
+    },
+    linkArchived: {
+      title: "Enlace archivado",
+      body: "{name} fue archivado.",
+    },
+    campaignCreatedSelf: {
+      title: "Campaña creada",
+      body: "{name} está lista para nuevos enlaces.",
+    },
+    campaignCreatedWorkspace: {
+      title: "Nueva campaña en el espacio",
+      body: "{name} está lista para nuevos enlaces.",
+    },
   },
   toasts: {
     profileSaved: "Perfil actualizado",
@@ -998,6 +1034,8 @@ const en: Translations = {
     resendConfiguration: "Resend Configuration",
     resendEnvHint1: "Set your Resend API key in the",
     resendEnvHint2: "file as",
+    resendApiKeyLabel: "Resend API key",
+    resendApiKeyFieldHint: "Stored per workspace and never shown back. Takes priority over the server key.",
     resendApiKeyCta: "Get your free API key at",
     resendApiKeyTail: "— 3,000 emails/month free.",
     defaultSender: "Default Sender",
@@ -1121,6 +1159,40 @@ const en: Translations = {
     minutesAgo: "{n}m ago",
     hoursAgo: "{n}h ago",
     daysAgo: "{n}d ago",
+  },
+  notifTemplates: {
+    workspaceCreated: {
+      title: "Workspace created",
+      body: "{name} is ready for links and campaigns.",
+    },
+    memberAdded: {
+      title: "Added to workspace",
+      body: "You were added to {workspace} as {role}.",
+    },
+    permissionsChanged: {
+      title: "Your permissions changed",
+      body: "Your permissions in {workspace} were updated. Reload the page to apply them.",
+    },
+    linkCreatedSelf: {
+      title: "Link created",
+      body: "{name} is ready to share.",
+    },
+    linkCreatedWorkspace: {
+      title: "New link in workspace",
+      body: "{name} was created.",
+    },
+    linkArchived: {
+      title: "Link archived",
+      body: "{name} was archived.",
+    },
+    campaignCreatedSelf: {
+      title: "Campaign created",
+      body: "{name} is ready for new links.",
+    },
+    campaignCreatedWorkspace: {
+      title: "New campaign in workspace",
+      body: "{name} is ready for new links.",
+    },
   },
   toasts: {
     profileSaved: "Profile updated",

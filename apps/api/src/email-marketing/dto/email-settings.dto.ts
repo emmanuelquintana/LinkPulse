@@ -33,6 +33,11 @@ export class UpsertEmailSettingsDto {
   @IsBoolean()
   smtpSecure?: boolean;
 
+  @ApiPropertyOptional({ example: 're_xxxxxxxx', description: 'Resend API key (per workspace)' })
+  @IsOptional()
+  @IsString()
+  resendApiKey?: string;
+
   @ApiPropertyOptional({ example: 'noreply@yourdomain.com' })
   @IsOptional()
   @IsEmail()

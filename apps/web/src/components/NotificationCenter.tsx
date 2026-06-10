@@ -44,10 +44,39 @@ interface NotificationItem {
   href: string | null;
   readAt: string | null;
   createdAt: string;
+  metadata?: { key?: string; params?: Record<string, string> } | null;
   workspace?: {
     id: string;
     name: string;
   } | null;
+}
+
+function roleLabel(role: string, t: Translations) {
+  const r = role.toUpperCase();
+  if (r === "OWNER") return t.workspaces.roleOwner;
+  if (r === "ADMIN") return t.workspaces.roleAdmin;
+  if (r === "MEMBER") return t.workspaces.roleMember;
+  return role;
+}
+
+/**
+ * Texto localizado según el idioma del que ve la notificación. Usa
+ * metadata.key + params; si no hay (notificaciones antiguas), cae al texto
+ * guardado en la base de datos.
+ */
+function localizedNotification(n: NotificationItem, t: Translations) {
+  const key = n.metadata?.key;
+  const templates = t.notifTemplates as Record<
+    string,
+    { title: string; body: string }
+  >;
+  const tpl = key ? templates[key] : undefined;
+  if (tpl) {
+    const params: Record<string, string> = { ...(n.metadata?.params ?? {}) };
+    if (params.role) params.role = roleLabel(params.role, t);
+    return { title: format(tpl.title, params), body: format(tpl.body, params) };
+  }
+  return { title: n.title, body: n.body ?? "" };
 }
 
 const iconByType: Record<NotificationType, LucideIcon> = {
@@ -312,6 +341,8 @@ export function NotificationCenter() {
                 {notifications.map((notification) => {
                   const Icon = iconByType[notification.type] || Bell;
                   const isUnread = !notification.readAt;
+                  const { title: displayTitle, body: displayBody } =
+                    localizedNotification(notification, t);
 
                   return (
                     <div
@@ -339,15 +370,15 @@ export function NotificationCenter() {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-start justify-between gap-3">
                             <span className="truncate text-sm font-black text-gray-900">
-                              {notification.title}
+                              {displayTitle}
                             </span>
                             <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-gray-400">
                               {formatRelativeTime(notification.createdAt, t)}
                             </span>
                           </span>
-                          {notification.body && (
+                          {displayBody && (
                             <span className="mt-1 line-clamp-2 block text-xs font-medium leading-relaxed text-gray-500">
-                              {notification.body}
+                              {displayBody}
                             </span>
                           )}
                           {notification.workspace?.name && (

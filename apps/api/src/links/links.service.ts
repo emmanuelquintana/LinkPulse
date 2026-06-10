@@ -11,6 +11,7 @@ import { PaginationQueryDto } from "../shared/dto/pagination-query.dto.js";
 import { RedisService } from "../redis/redis.service.js";
 import { ProfilesService } from "../profiles/profiles.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
+import { notif } from "../notifications/notification-messages.js";
 import { WorkspaceAccessService } from "../workspaces/workspace-access.service.js";
 
 // Alphabet chosen to avoid ambiguous characters
@@ -100,23 +101,16 @@ export class LinksService {
       },
     });
 
+    const linkName = title || alias || shortCode;
     await this.notificationsService.createForUser({
       userId,
       workspaceId,
-      type: "LINK_CREATED",
-      title: "Link created",
-      body: `${title || alias || shortCode} is ready to share.`,
-      href: "/dashboard/links",
+      ...notif.linkCreatedSelf(linkName),
     });
 
     await this.notificationsService.createForWorkspaceMembers(
       workspaceId,
-      {
-        type: "LINK_CREATED",
-        title: "New link in workspace",
-        body: `${title || alias || shortCode} was created.`,
-        href: "/dashboard/links",
-      },
+      notif.linkCreatedWorkspace(linkName),
       [userId],
     );
 
@@ -264,23 +258,17 @@ export class LinksService {
       await this.redis.del(`short:${archived.customAlias}`);
     }
 
+    const archivedName =
+      currentLink.title || archived.customAlias || archived.shortCode;
     await this.notificationsService.createForUser({
       userId,
       workspaceId: archived.workspaceId,
-      type: "LINK_ARCHIVED",
-      title: "Link archived",
-      body: `${currentLink.title || archived.customAlias || archived.shortCode} was archived.`,
-      href: "/dashboard/links",
+      ...notif.linkArchived(archivedName),
     });
 
     await this.notificationsService.createForWorkspaceMembers(
       archived.workspaceId,
-      {
-        type: "LINK_ARCHIVED",
-        title: "Link archived",
-        body: `${currentLink.title || archived.customAlias || archived.shortCode} was archived.`,
-        href: "/dashboard/links",
-      },
+      notif.linkArchived(archivedName),
       [userId],
     );
 

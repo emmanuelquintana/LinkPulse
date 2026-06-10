@@ -21,6 +21,7 @@ type EmailSettingsRow = {
   smtpUser?: string | null;
   smtpPass?: string | null;
   smtpSecure?: boolean;
+  resendApiKey?: string | null;
   fromEmail?: string | null;
   fromName?: string | null;
 } | null;
@@ -47,7 +48,8 @@ export class EmailSenderService {
       return this.sendViaSMTP(payload, settings);
     }
 
-    const apiKey = process.env.RESEND_API_KEY;
+    // Prioriza la API key configurada por el workspace; si no, cae al env global.
+    const apiKey = settings?.resendApiKey || process.env.RESEND_API_KEY;
     if (apiKey && !apiKey.startsWith('re_placeholder')) {
       return this.sendViaResend(payload, apiKey);
     }

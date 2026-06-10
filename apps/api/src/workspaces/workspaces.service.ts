@@ -8,6 +8,7 @@ import { PrismaService } from "../prisma/prisma.service.js";
 import { CreateWorkspaceDto } from "./dto/create-workspace.dto.js";
 import { ProfilesService } from "../profiles/profiles.service.js";
 import { NotificationsService } from "../notifications/notifications.service.js";
+import { notif } from "../notifications/notification-messages.js";
 import { EmailSenderService } from "../email-marketing/campaigns/email-sender.service.js";
 import { invitationEmailTemplate } from "../email-marketing/templates/email-templates.js";
 import { WorkspaceAccessService } from "./workspace-access.service.js";
@@ -75,10 +76,7 @@ export class WorkspacesService {
     await this.notificationsService.createForUser({
       userId,
       workspaceId: workspace.id,
-      type: "WORKSPACE_CREATED",
-      title: "Workspace created",
-      body: `${workspace.name} is ready for links and campaigns.`,
-      href: "/dashboard/workspaces",
+      ...notif.workspaceCreated(workspace.name),
     });
 
     return workspace;
@@ -95,6 +93,23 @@ export class WorkspacesService {
       },
       include: {
         owner: true,
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                avatarUrl: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+        _count: {
+          select: { members: true, links: true },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -205,10 +220,7 @@ export class WorkspacesService {
         await this.notificationsService.createForUser({
           userId: existingProfile.id,
           workspaceId,
-          type: "MEMBER_ADDED",
-          title: "Added to workspace",
-          body: `You were added to ${workspace.name} as ${role.toLowerCase()}.`,
-          href: "/dashboard/workspaces",
+          ...notif.memberAdded(workspace.name, role),
         });
 
         return { status: "added" as const, member: membership };
@@ -331,7 +343,14 @@ export class WorkspacesService {
         ...(data.role ? { role: data.role } : {}),
         ...this.sanitizePermissions(data.permissions),
       },
-      include: { user: true },
+      include: { user: true, workspace: { select: { name: true } } },
+    });
+
+    // Avisa al miembro afectado que sus permisos cambiaron (debe recargar).
+    await this.notificationsService.createForUser({
+      userId: updated.userId,
+      workspaceId,
+      ...notif.permissionsChanged(updated.workspace.name),
     });
 
     return updated;
