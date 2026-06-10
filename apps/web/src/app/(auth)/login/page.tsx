@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import { fetchApi, getErrorMessage } from '@/lib/api';
+import { fetchApi } from '@/lib/api';
+import { localizeApiError } from "@/lib/api-errors";
 import { useTranslation } from '@/i18n/I18nProvider';
 
 export default function LoginPage() {
@@ -48,7 +49,7 @@ export default function LoginPage() {
       router.refresh();
     } catch (err: unknown) {
       console.error('[Login] Authentication failed:', err);
-      setError(getErrorMessage(err) || t.auth.invalidCredentials);
+      setError(localizeApiError(err, t) || t.auth.invalidCredentials);
       setLoading(false);
     }
   };

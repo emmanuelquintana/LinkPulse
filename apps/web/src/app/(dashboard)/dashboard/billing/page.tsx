@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { fetchApi, getErrorMessage } from '@/lib/api';
+import { fetchApi } from '@/lib/api';
+import { localizeApiError } from "@/lib/api-errors";
 import { useSearchParams } from 'next/navigation';
 import { useTranslation } from '@/i18n/I18nProvider';
 import { sileo } from 'sileo';
@@ -35,12 +36,14 @@ function BillingContent() {
     loadWorkspaces();
   }, []);
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (plan: 'PRO' | 'ENTERPRISE') => {
     if (!selectedWorkspaceId) return;
     setProcessing(true);
     try {
-      const priceId = process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
-      
+      const priceId = plan === 'ENTERPRISE'
+        ? process.env.NEXT_PUBLIC_STRIPE_ENTERPRISE_PRICE_ID
+        : process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID;
+
       if (!priceId) {
         throw new Error(t.billing.stripeNotConfigured);
       }
@@ -59,7 +62,7 @@ function BillingContent() {
       }
     } catch (err) {
       console.error("Failed to start checkout", err);
-      sileo.error({ title: t.billing.checkoutError, description: getErrorMessage(err) });
+      sileo.error({ title: t.billing.checkoutError, description: localizeApiError(err, t) });
     } finally {
       setProcessing(false);
     }
@@ -82,7 +85,7 @@ function BillingContent() {
       }
     } catch (err) {
       console.error("Failed to open portal", err);
-      sileo.error({ title: t.billing.portalError, description: getErrorMessage(err) });
+      sileo.error({ title: t.billing.portalError, description: localizeApiError(err, t) });
     } finally {
       setProcessing(false);
     }
@@ -90,6 +93,8 @@ function BillingContent() {
 
   const selectedWorkspace = workspaces.find(w => w.id === selectedWorkspaceId);
   const isPro = selectedWorkspace?.plan === 'PRO';
+  const isEnterprise = selectedWorkspace?.plan === 'ENTERPRISE';
+  const isFree = !isPro && !isEnterprise;
 
   if (loading) {
     return (
@@ -130,7 +135,7 @@ function BillingContent() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Workspace Selection */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
@@ -142,13 +147,13 @@ function BillingContent() {
                   onClick={() => setSelectedWorkspaceId(ws.id)}
                   className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${selectedWorkspaceId === ws.id ? 'bg-indigo-50 border-indigo-200 text-indigo-900 shadow-sm' : 'bg-gray-50 border-gray-50 text-gray-500 hover:border-gray-200'}`}
                 >
-                  <div className="flex items-center gap-3">
-                     <div className={`h-8 w-8 rounded-xl flex items-center justify-center font-bold text-xs ${selectedWorkspaceId === ws.id ? 'bg-white text-indigo-600' : 'bg-white text-gray-400'}`}>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                     <div className={`h-8 w-8 shrink-0 rounded-xl flex items-center justify-center font-bold text-xs ${selectedWorkspaceId === ws.id ? 'bg-white text-indigo-600' : 'bg-white text-gray-400'}`}>
                         {ws.name.charAt(0).toUpperCase()}
                      </div>
-                     <span className="text-sm font-black truncate max-w-[120px]">{ws.name}</span>
+                     <span className="text-sm font-black truncate">{ws.name}</span>
                   </div>
-                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-lg ${ws.plan === 'PRO' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                  <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-lg shrink-0 ml-3 ${ws.plan === 'PRO' ? 'bg-indigo-600 text-white' : ws.plan === 'ENTERPRISE' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'}`}>
                     {ws.plan}
                   </span>
                 </button>
@@ -167,13 +172,13 @@ function BillingContent() {
         </div>
 
         {/* Plan Cards */}
-        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* FREE PLAN */}
-          <div className={`bg-white rounded-[2rem] border p-10 flex flex-col justify-between transition-all ${!isPro ? 'border-indigo-600 ring-4 ring-indigo-50 shadow-xl' : 'border-gray-100 shadow-sm opacity-80'}`}>
+          <div className={`bg-white rounded-[2rem] border p-10 flex flex-col justify-between transition-all ${isFree ? 'border-indigo-600 ring-4 ring-indigo-50 shadow-xl' : 'border-gray-100 shadow-sm opacity-80'}`}>
             <div>
               <div className="flex items-center justify-between mb-8">
-                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">{t.billing.freeTier}</span>
-                {!isPro && <span className="material-symbols-outlined text-indigo-600">check_circle</span>}
+                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full whitespace-nowrap">{t.billing.freeTier}</span>
+                {isFree && <span className="material-symbols-outlined text-indigo-600">check_circle</span>}
               </div>
               <h4 className="text-4xl font-black text-gray-900">$0<span className="text-sm font-bold text-gray-400">{t.billing.perMonth}</span></h4>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-6 mb-8">{t.billing.perfectHobbyists}</p>
@@ -187,12 +192,12 @@ function BillingContent() {
                 ))}
               </ul>
             </div>
-            
-            <button 
-              disabled={!isPro}
-              className={`mt-10 h-14 w-full rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all ${!isPro ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-black'}`}
+
+            <button
+              disabled={isFree}
+              className={`mt-10 h-14 w-full rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all ${isFree ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-black'}`}
             >
-              {!isPro ? t.billing.currentPlan : t.billing.downgrade}
+              {isFree ? t.billing.currentPlan : t.billing.downgrade}
             </button>
           </div>
 
@@ -203,7 +208,7 @@ function BillingContent() {
             )}
             <div>
               <div className="flex items-center justify-between mb-8">
-                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full">{t.billing.proPlan}</span>
+                <span className="text-xs font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-3 py-1 rounded-full whitespace-nowrap">{t.billing.proPlan}</span>
                 <span className="material-symbols-outlined text-indigo-400">workspace_premium</span>
               </div>
               <h4 className="text-4xl font-black text-gray-900">$19<span className="text-sm font-bold text-gray-400">{t.billing.perMonth}</span></h4>
@@ -218,22 +223,71 @@ function BillingContent() {
                 ))}
               </ul>
             </div>
-            
+
             {isPro ? (
-              <button 
+              <button
                 onClick={handleManage}
                 disabled={processing}
-                className="mt-10 h-14 w-full bg-indigo-50 text-indigo-600 rounded-[1.2rem] text-xs font-black uppercase tracking-widest hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 shadow-sm border border-indigo-100"
+                className="mt-10 h-14 w-full px-4 bg-indigo-50 text-indigo-600 rounded-[1.2rem] text-xs font-black uppercase tracking-wider hover:bg-indigo-100 transition-all flex items-center justify-center gap-2 shadow-sm border border-indigo-100"
               >
-                {processing ? <div className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /> : <><span className="material-symbols-outlined text-[18px]">payments</span> {t.billing.manageSubscription}</>}
+                {processing ? <div className="w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" /> : <><span className="material-symbols-outlined text-[18px] shrink-0">payments</span> <span className="leading-tight">{t.billing.manageSubscription}</span></>}
+              </button>
+            ) : isEnterprise ? (
+              <button
+                disabled
+                className="mt-10 h-14 w-full bg-gray-100 text-gray-400 rounded-[1.2rem] text-xs font-black uppercase tracking-widest cursor-not-allowed"
+              >
+                {t.billing.includedInEnterprise}
               </button>
             ) : (
-              <button 
-                onClick={handleUpgrade}
+              <button
+                onClick={() => handleUpgrade('PRO')}
                 disabled={processing}
-                className="mt-10 h-14 w-full bg-indigo-600 text-white rounded-[1.2rem] text-xs font-black uppercase tracking-widest hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-indigo-100"
+                className="mt-10 h-14 w-full px-4 bg-indigo-600 text-white rounded-[1.2rem] text-xs font-black uppercase tracking-wider hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-indigo-100"
               >
-                {processing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span className="material-symbols-outlined text-[18px]">bolt</span> {t.billing.upgradeNow}</>}
+                {processing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span className="material-symbols-outlined text-[18px] shrink-0">bolt</span> <span className="leading-tight">{t.billing.upgradeNow}</span></>}
+              </button>
+            )}
+          </div>
+
+          {/* ENTERPRISE PLAN (precio por empresa: workspaces ilimitados) */}
+          <div className={`bg-white rounded-[2rem] border p-10 flex flex-col justify-between transition-all relative overflow-hidden ${isEnterprise ? 'border-gray-900 ring-4 ring-gray-100 shadow-xl' : 'border-gray-100 shadow-sm hover:border-gray-300'}`}>
+            {isEnterprise && (
+              <div className="absolute top-4 right-4 bg-gray-900 text-white text-[10px] font-black uppercase px-3 py-1 rounded-lg">{t.billing.active}</div>
+            )}
+            <div>
+              <div className="flex items-center justify-between mb-8">
+                <span className="text-xs font-black text-gray-900 uppercase tracking-widest bg-gray-100 px-3 py-1 rounded-full whitespace-nowrap">{t.billing.enterprisePlan}</span>
+                <span className="material-symbols-outlined text-gray-700">apartment</span>
+              </div>
+              <h4 className="text-4xl font-black text-gray-900 whitespace-nowrap">$49<span className="text-sm font-bold text-gray-400">{t.billing.perCompany}</span></h4>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-6 mb-8">{t.billing.forCompanies}</p>
+
+              <ul className="space-y-4">
+                {t.billing.enterpriseFeatures.map((feature, i) => (
+                  <li key={i} className="flex items-center gap-3 text-sm font-bold text-gray-600">
+                    <span className="material-symbols-outlined text-gray-900 text-[18px]">done_all</span>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {isEnterprise ? (
+              <button
+                onClick={handleManage}
+                disabled={processing}
+                className="mt-10 h-14 w-full px-4 bg-gray-100 text-gray-900 rounded-[1.2rem] text-xs font-black uppercase tracking-wider hover:bg-gray-200 transition-all flex items-center justify-center gap-2 shadow-sm border border-gray-200"
+              >
+                {processing ? <div className="w-4 h-4 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin" /> : <><span className="material-symbols-outlined text-[18px] shrink-0">payments</span> <span className="leading-tight">{t.billing.manageSubscription}</span></>}
+              </button>
+            ) : (
+              <button
+                onClick={() => handleUpgrade('ENTERPRISE')}
+                disabled={processing}
+                className="mt-10 h-14 w-full px-4 bg-gray-900 text-white rounded-[1.2rem] text-xs font-black uppercase tracking-wider hover:bg-black hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-xl shadow-gray-200"
+              >
+                {processing ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span className="material-symbols-outlined text-[18px] shrink-0">rocket_launch</span> <span className="leading-tight">{t.billing.upgradeNow}</span></>}
               </button>
             )}
           </div>

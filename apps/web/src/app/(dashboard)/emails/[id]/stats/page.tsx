@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { fetchApi, getErrorMessage } from '@/lib/api';
+import { fetchApi } from '@/lib/api';
+import { localizeApiError } from "@/lib/api-errors";
 import {
   BarChart2,
   MousePointer2,
@@ -156,7 +157,7 @@ export default function CampaignStatsPage() {
         const data = await fetchApi(`/email-campaigns/${campaignId}/stats?workspaceId=${workspaceId}`);
         setStats(data.data || data);
       } catch (err: unknown) {
-        setError(getErrorMessage(err) || t.stats.loadError);
+        setError(localizeApiError(err, t) || t.stats.loadError);
       } finally {
         setLoading(false);
       }

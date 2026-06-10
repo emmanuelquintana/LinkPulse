@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { fetchApi, getErrorMessage } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
+import { localizeApiError } from "@/lib/api-errors";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { sileo } from "sileo";
 import { useConfirm } from "@/components/ConfirmProvider";
@@ -132,7 +133,7 @@ export default function WorkspaceMembersModal({
     } catch (err) {
       sileo.error({
         title: t.workspaces.memberError,
-        description: getErrorMessage(err),
+        description: localizeApiError(err, t),
       });
     } finally {
       setLoading(false);
@@ -178,7 +179,7 @@ export default function WorkspaceMembersModal({
     } catch (err) {
       sileo.error({
         title: t.workspaces.memberError,
-        description: getErrorMessage(err),
+        description: localizeApiError(err, t),
       });
     } finally {
       setInviting(false);
@@ -211,7 +212,7 @@ export default function WorkspaceMembersModal({
     } catch (err) {
       sileo.error({
         title: t.workspaces.memberError,
-        description: getErrorMessage(err),
+        description: localizeApiError(err, t),
       });
     } finally {
       setSavingId(null);
@@ -237,7 +238,7 @@ export default function WorkspaceMembersModal({
     } catch (err) {
       sileo.error({
         title: t.workspaces.memberError,
-        description: getErrorMessage(err),
+        description: localizeApiError(err, t),
       });
     }
   };
@@ -261,7 +262,7 @@ export default function WorkspaceMembersModal({
     } catch (err) {
       sileo.error({
         title: t.workspaces.memberError,
-        description: getErrorMessage(err),
+        description: localizeApiError(err, t),
       });
     }
   };

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Profile } from '@linkpulse/db';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { SupabaseUserMetadata } from '../common/types/authenticated-request.js';
 
@@ -6,13 +7,13 @@ import type { SupabaseUserMetadata } from '../common/types/authenticated-request
 export class ProfilesService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async getProfile(id: string) {
+    async getProfile(id: string): Promise<Profile | null> {
         return this.prisma.profile.findUnique({
             where: { id },
         });
     }
 
-    async bootstrapProfile(userId: string, email: string, metadata?: SupabaseUserMetadata) {
+    async bootstrapProfile(userId: string, email: string, metadata?: SupabaseUserMetadata): Promise<Profile> {
         console.log(`[ProfilesService] Bootstrapping profile for ${userId} (${email})`, metadata ? 'with metadata' : 'without metadata');
         const existing = await this.getProfile(userId);
         
@@ -105,11 +106,28 @@ export class ProfilesService {
         }
     }
 
-    async updateProfile(userId: string, data: Partial<{ firstName: string, lastName: string, avatarUrl: string }>) {
+    async updateProfile(userId: string, data: Partial<{ firstName: string, lastName: string, avatarUrl: string }>): Promise<Profile> {
         console.log(`[ProfilesService] Updating profile for ${userId} with data:`, data);
         return this.prisma.profile.update({
             where: { id: userId },
             data,
+        });
+    }
+
+    /** Mezcla las preferencias nuevas con las existentes (merge superficial). */
+    async updateNotificationPrefs(
+        userId: string,
+        prefs: Partial<Record<'links' | 'campaigns' | 'team' | 'billing', boolean>>,
+    ): Promise<Profile> {
+        const existing = await this.prisma.profile.findUnique({
+            where: { id: userId },
+            select: { notificationPrefs: true },
+        });
+        const current = (existing?.notificationPrefs as Record<string, boolean> | null) ?? {};
+        const merged = { ...current, ...prefs };
+        return this.prisma.profile.update({
+            where: { id: userId },
+            data: { notificationPrefs: merged },
         });
     }
 }

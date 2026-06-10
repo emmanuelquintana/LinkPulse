@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { fetchApi, getErrorMessage } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
+import { localizeApiError } from "@/lib/api-errors";
 import Link from "next/link";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { sileo } from "sileo";
@@ -97,7 +98,7 @@ export default function CreateLinkPage() {
       // Route back to the links table
       router.push("/dashboard/links");
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || t.createLink.createError);
+      setError(localizeApiError(err, t) || t.createLink.createError);
     } finally {
       setCreating(false);
     }

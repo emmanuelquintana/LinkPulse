@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { fetchApi, getErrorMessage } from "@/lib/api";
+import { fetchApi } from "@/lib/api";
+import { localizeApiError } from "@/lib/api-errors";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { sileo } from "sileo";
 
@@ -47,7 +48,7 @@ export default function CreateCampaignModal({
       setName("");
       setDescription("");
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || t.modals.campaignCreateError);
+      setError(localizeApiError(err, t) || t.modals.campaignCreateError);
     } finally {
       setLoading(false);
     }

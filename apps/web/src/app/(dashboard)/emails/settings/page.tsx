@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { fetchApi, getErrorMessage } from '@/lib/api';
+import { fetchApi } from '@/lib/api';
+import { localizeApiError } from "@/lib/api-errors";
 import {
   Settings,
   Server,
@@ -128,7 +129,7 @@ function EmailSettingsContent() {
       sileo.success({ title: t.toasts.settingsSaved });
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err: unknown) {
-      sileo.error({ title: t.emailSettings.saveError, description: getErrorMessage(err) });
+      sileo.error({ title: t.emailSettings.saveError, description: localizeApiError(err, t) });
     } finally {
       setSaving(false);
     }
@@ -146,10 +147,10 @@ function EmailSettingsContent() {
       if (result.success) {
         sileo.success({ title: t.toasts.testEmailSent });
       } else {
-        sileo.error({ title: t.emailSettings.testFailed, description: result.message });
+        sileo.error({ title: t.emailSettings.testFailed, description: localizeApiError(result.message, t) });
       }
     } catch (err: unknown) {
-      const message = getErrorMessage(err) || t.emailSettings.testFailed;
+      const message = localizeApiError(err, t) || t.emailSettings.testFailed;
       sileo.error({ title: t.emailSettings.testFailed, description: message });
     } finally {
       setTesting(false);

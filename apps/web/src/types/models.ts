@@ -6,6 +6,7 @@ export interface Profile {
   firstName?: string | null;
   lastName?: string | null;
   avatarUrl?: string | null;
+  notificationPrefs?: Record<string, boolean> | null;
 }
 
 export interface WorkspaceSummary {

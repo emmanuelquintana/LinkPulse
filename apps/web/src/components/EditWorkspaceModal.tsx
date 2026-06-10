@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { fetchApi, getErrorMessage } from '@/lib/api';
+import { fetchApi } from '@/lib/api';
+import { localizeApiError } from "@/lib/api-errors";
 import { useTranslation } from '@/i18n/I18nProvider';
 import { sileo } from 'sileo';
 
@@ -44,7 +45,7 @@ export default function EditWorkspaceModal({ isOpen, onClose, workspace, onSucce
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || t.modals.workspaceUpdateError);
+      setError(localizeApiError(err, t) || t.modals.workspaceUpdateError);
     } finally {
       setLoading(false);
     }

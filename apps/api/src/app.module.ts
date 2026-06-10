@@ -11,6 +11,8 @@ import { CampaignsModule } from "./campaigns/campaigns.module.js";
 import { BillingModule } from "./billing/billing.module.js";
 import { NotificationsModule } from "./notifications/notifications.module.js";
 import { EmailMarketingModule } from "./email-marketing/email-marketing.module.js";
+import { ApiKeysModule } from "./api-keys/api-keys.module.js";
+import { PublicApiModule } from "./public-api/public-api.module.js";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js";
 
@@ -30,6 +32,8 @@ import { LoggingInterceptor } from "./common/interceptors/logging.interceptor.js
     BillingModule,
     NotificationsModule,
     EmailMarketingModule,
+    ApiKeysModule,
+    PublicApiModule,
   ],
   providers: [
     {

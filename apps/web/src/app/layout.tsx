@@ -6,9 +6,55 @@ import { Providers } from '@/components/Providers';
 
 const inter = Inter({ subsets: ['latin'] });
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  process.env.APP_URL ??
+  'http://localhost:3000';
+
 export const metadata: Metadata = {
-  title: 'LinkPulse - Acortador de Enlaces',
-  description: 'Gestión moderna y analíticas para tus enlaces',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'LinkPulse — Acortador de enlaces con analíticas',
+    template: '%s | LinkPulse',
+  },
+  description:
+    'Acorta enlaces, mide cada clic y lanza campañas de email con seguimiento. Analíticas en tiempo real, equipos con permisos y marca personalizada.',
+  keywords: [
+    'acortador de enlaces',
+    'url shortener',
+    'analíticas de enlaces',
+    'email marketing',
+    'seguimiento de clics',
+    'link in bio',
+    'UTM',
+  ],
+  applicationName: 'LinkPulse',
+  authors: [{ name: 'LinkPulse' }],
+  openGraph: {
+    type: 'website',
+    siteName: 'LinkPulse',
+    locale: 'es_MX',
+    url: SITE_URL,
+    title: 'LinkPulse — Acorta enlaces. Amplifica resultados.',
+    description:
+      'Enlaces cortos con analíticas en tiempo real, email marketing con tracking y equipos con permisos granulares.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'LinkPulse — Acorta enlaces. Amplifica resultados.',
+    description:
+      'Enlaces cortos con analíticas en tiempo real y email marketing con tracking.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export default function RootLayout({

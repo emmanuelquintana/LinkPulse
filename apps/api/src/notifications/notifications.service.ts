@@ -13,11 +13,46 @@ interface CreateNotificationInput {
   metadata?: { key: string; params: Record<string, string> } | null;
 }
 
+type PrefKey = "links" | "campaigns" | "team" | "billing";
+
+/**
+ * Categoría de preferencia que controla cada tipo. SYSTEM es null: siempre se
+ * entrega (avisos críticos como cambios de permisos).
+ */
+const PREF_BY_TYPE: Record<NotificationType, PrefKey | null> = {
+  LINK_CREATED: "links",
+  LINK_ARCHIVED: "links",
+  CAMPAIGN_CREATED: "campaigns",
+  WORKSPACE_CREATED: "team",
+  MEMBER_ADDED: "team",
+  BILLING: "billing",
+  SYSTEM: null,
+};
+
+function prefsAllow(
+  prefs: unknown,
+  type: NotificationType,
+): boolean {
+  const key = PREF_BY_TYPE[type];
+  if (!key) return true;
+  const map = (prefs ?? {}) as Record<string, boolean>;
+  // Sin preferencia explícita = activado.
+  return map[key] !== false;
+}
+
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createForUser(input: CreateNotificationInput) {
+    const type = input.type ?? "SYSTEM";
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: input.userId },
+      select: { notificationPrefs: true },
+    });
+    if (!prefsAllow(profile?.notificationPrefs, type)) {
+      return null;
+    }
     return this.prisma.notification.create({
       data: {
         userId: input.userId,
@@ -36,14 +71,23 @@ export class NotificationsService {
     input: Omit<CreateNotificationInput, "userId" | "workspaceId">,
     excludeUserIds: string[] = [],
   ) {
-    const members = await this.prisma.workspaceMember.findMany({
+    const allMembers = await this.prisma.workspaceMember.findMany({
       where: {
         workspaceId,
         userId:
           excludeUserIds.length > 0 ? { notIn: excludeUserIds } : undefined,
       },
-      select: { userId: true },
+      select: {
+        userId: true,
+        user: { select: { notificationPrefs: true } },
+      },
     });
+
+    // Respeta las preferencias de cada destinatario.
+    const type = input.type ?? "SYSTEM";
+    const members = allMembers.filter((m) =>
+      prefsAllow(m.user?.notificationPrefs, type),
+    );
 
     if (members.length === 0) {
       return { count: 0 };

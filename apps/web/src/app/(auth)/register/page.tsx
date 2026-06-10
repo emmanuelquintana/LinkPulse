@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { localizeApiError } from '@/lib/api-errors';
 import { useTranslation } from '@/i18n/I18nProvider';
 
 export default function RegisterPage() {
@@ -41,7 +42,7 @@ export default function RegisterPage() {
     });
 
     if (error) {
-      setError(error.message);
+      setError(localizeApiError(error, t) || error.message);
       setLoading(false);
       return;
     }

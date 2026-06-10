@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { fetchApi, getErrorMessage } from '@/lib/api';
+import { fetchApi } from '@/lib/api';
+import { localizeApiError } from "@/lib/api-errors";
 import { Users, Upload, Plus, Tag, Trash2, ChevronLeft, ChevronRight, X, Download, FileSpreadsheet } from 'lucide-react';
 import { useTranslation } from '@/i18n/I18nProvider';
 import { format } from '@/i18n/translations';
@@ -110,7 +111,7 @@ export default function SubscribersPage() {
       sileo.success({ title: t.toasts.subscriberDeleted });
       loadSubscribers();
     } catch (err: unknown) {
-      sileo.error({ title: t.common.error, description: getErrorMessage(err) });
+      sileo.error({ title: t.common.error, description: localizeApiError(err, t) });
     }
   }
 
@@ -139,7 +140,7 @@ export default function SubscribersPage() {
       loadSubscribers();
     } catch (err: unknown) {
       setCsvResult({ imported: 0, skipped: 0 });
-      sileo.error({ title: t.common.error, description: getErrorMessage(err) });
+      sileo.error({ title: t.common.error, description: localizeApiError(err, t) });
     } finally {
       setCsvUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -365,7 +366,7 @@ function AddSubscriberModal({
       sileo.success({ title: t.toasts.subscriberAdded });
       onSuccess();
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || t.subscribers.createError);
+      setError(localizeApiError(err, t) || t.subscribers.createError);
     } finally {
       setSaving(false);
     }

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { fetchApi, getErrorMessage } from "@/lib/api";
+import { ApiError, fetchApi } from "@/lib/api";
+import { localizeApiError } from "@/lib/api-errors";
 import Link from "next/link";
 import EditWorkspaceModal from "@/components/EditWorkspaceModal";
 import WorkspaceMembersModal from "@/components/WorkspaceMembersModal";
@@ -49,7 +50,6 @@ export default function WorkspacesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Actions State
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -86,7 +86,6 @@ export default function WorkspacesPage() {
     if (!newWorkspaceName.trim()) return;
 
     setCreating(true);
-    setError(null);
     try {
       await fetchApi("/workspaces", {
         method: "POST",
@@ -98,7 +97,24 @@ export default function WorkspacesPage() {
       setShowCreateModal(false);
       loadWorkspaces();
     } catch (err: unknown) {
-      setError(getErrorMessage(err) || t.workspaces.createError);
+      const body =
+        err instanceof ApiError
+          ? (err.data as { code?: string; data?: { plan?: string } } | null)
+          : null;
+      if (body?.code === "LP_WORKSPACE_LIMIT") {
+        sileo.error({
+          title: t.workspaces.limitReachedTitle,
+          description:
+            body.data?.plan === "PRO"
+              ? t.workspaces.limitReachedPro
+              : t.workspaces.limitReachedFree,
+        });
+      } else {
+        sileo.error({
+          title: t.workspaces.createError,
+          description: localizeApiError(err, t),
+        });
+      }
     } finally {
       setCreating(false);
     }
@@ -131,7 +147,7 @@ export default function WorkspacesPage() {
       loadWorkspaces();
     } catch (err: unknown) {
       console.error("Failed to delete workspace", err);
-      sileo.error({ title: t.workspaces.deleteError, description: getErrorMessage(err) });
+      sileo.error({ title: t.workspaces.deleteError, description: localizeApiError(err, t) });
     }
     setOpenMenuId(null);
   };
@@ -339,15 +355,6 @@ export default function WorkspacesPage() {
               </div>
 
               <form onSubmit={handleCreateWorkspace} className="p-7 space-y-6">
-                {error && (
-                  <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm font-bold flex items-center gap-2 border border-red-100">
-                    <span className="material-symbols-outlined text-[20px]">
-                      error
-                    </span>
-                    {error}
-                  </div>
-                )}
-
                 <div className="space-y-2">
                   <label className="text-[0.7rem] font-black text-gray-400 uppercase tracking-widest block px-1">
                     {t.workspaces.workspaceName}
